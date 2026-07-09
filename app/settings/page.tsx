@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 
-export default function Settings() {
+function SettingsContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const [tokens, setTokens] = useState<any>({});
@@ -173,5 +173,13 @@ export default function Settings() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Settings() {
+  return (
+    <Suspense fallback={<div style={{padding:20,textAlign:"center"}}>Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 const CATS = ["All","Certificate","Project","Internship","Research","Achievement","Resume","Skill"];
 const ICONS: Record<string,string> = {Certificate:"🏅",Project:"🚀",Internship:"💼",Research:"🔬",Achievement:"🏆",Resume:"📄",Skill:"⚡",Other:"📌"};
 
-export default function Search() {
+function SearchContent() {
   const sp = useSearchParams();
   const router = useRouter();
   const [q, setQ] = useState(sp.get("q")||"");
@@ -92,5 +92,13 @@ export default function Search() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Search() {
+  return (
+    <Suspense fallback={<div style={{padding:20,textAlign:"center"}}>Loading search...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }
