@@ -22,7 +22,7 @@ Last updated: ${r.updated_at?.slice(0, 4)}`;
       const analysis = await analyzeDoc(rawText, `${r.name}.github`);
       const doc: MemDoc = {
         id: `gh_${r.id}`, title: r.full_name || r.name,
-        cat: "Project", fileName: `${r.name} (GitHub)`,
+        cat: "Projects", fileName: `${r.name} (GitHub)`,
         mime: "text/plain", rawText,
         summary: r.description || `GitHub project: ${r.name}`,
         entities: { ...analysis.entities, tech: r.language ? [r.language, ...analysis.entities.tech] : analysis.entities.tech },

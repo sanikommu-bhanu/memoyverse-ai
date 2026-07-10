@@ -20,15 +20,15 @@ function Ring({p,size=72,sw=7}:{p:number;size?:number;sw?:number}){
 }
 
 const STAT_CATS = [
-  {k:"Certificate",l:"Certificates",e:"🏅"},{k:"Project",l:"Projects",e:"🚀"},
-  {k:"Internship",l:"Internships",e:"💼"},{k:"Resume",l:"Resume",e:"📄"},
-  {k:"Research",l:"Research",e:"🔬"},{k:"Achievement",l:"Achievements",e:"🏆"},
+  {k:"Certifications",l:"Certifications",e:"🏅"},{k:"Projects",l:"Projects",e:"🚀"},
+  {k:"Internships",l:"Internships",e:"💼"},{k:"Resume",l:"Resume",e:"📄"},
+  {k:"Academics",l:"Research",e:"🔬"},{k:"Achievements",l:"Achievements",e:"🏆"},
 ];
 const CAT_CHIPS = [
-  {k:"Certificate",l:"Certificates",e:"🏅"},{k:"Project",l:"Projects",e:"🚀"},
-  {k:"Internship",l:"Internships",e:"💼"},{k:"Skill",l:"Skills",e:"⚡"},
-  {k:"Resume",l:"Resume",e:"📄"},{k:"Research",l:"Research",e:"🔬"},
-  {k:"Achievement",l:"Achievements",e:"🏆"},
+  {k:"Certifications",l:"Certifications",e:"🏅"},{k:"Projects",l:"Projects",e:"🚀"},
+  {k:"Internships",l:"Internships",e:"💼"},{k:"Skills",l:"Skills",e:"⚡"},
+  {k:"Resume",l:"Resume",e:"📄"},{k:"Academics",l:"Research",e:"🔬"},
+  {k:"Achievements",l:"Achievements",e:"🏆"},
 ];
 
 export default function Home() {

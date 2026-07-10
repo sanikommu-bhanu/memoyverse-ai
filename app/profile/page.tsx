@@ -38,8 +38,8 @@ export default function Profile() {
   const skills = [...new Set(docs.flatMap((d:any)=>d.entities?.skills||[]))];
   const stats = {
     docs:docs.length, skills:skills.length,
-    projects:docs.filter((d:any)=>d.cat==="Project").length,
-    achievements:docs.filter((d:any)=>d.cat==="Achievement").length,
+    projects:docs.filter((d:any)=>d.cat==="Projects").length,
+    achievements:docs.filter((d:any)=>d.cat==="Achievements").length,
   };
 
   const save = async () => {

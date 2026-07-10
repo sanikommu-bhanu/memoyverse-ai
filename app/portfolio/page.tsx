@@ -16,7 +16,7 @@ export default function Portfolio() {
   useEffect(()=>{
     fetch("/api/profile").then(r=>r.json()).then(d=>setProfile(d.profile));
     fetch("/api/documents").then(r=>r.json()).then(d=>{
-      setProjects((d.docs||[]).filter((x:any)=>x.cat==="Project").slice(0,3));
+      setProjects((d.docs||[]).filter((x:any)=>x.cat==="Projects").slice(0,3));
     });
   },[]);
 

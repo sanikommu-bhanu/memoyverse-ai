@@ -2,8 +2,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-const CATS = ["All","Certificate","Project","Internship","Research","Achievement","Resume","Skill"];
-const ICONS: Record<string,string> = {Certificate:"🏅",Project:"🚀",Internship:"💼",Research:"🔬",Achievement:"🏆",Resume:"📄",Skill:"⚡",Other:"📌"};
+const CATS = ["All","Certifications","Projects","Internships","Academics","Achievements","Resume","Skills"];
+const ICONS: Record<string,string> = {Certifications:"🏅",Projects:"🚀",Internships:"💼",Academics:"🔬",Achievements:"🏆",Resume:"📄",Skills:"⚡",Other:"📌"};
 
 function SearchContent() {
   const sp = useSearchParams();

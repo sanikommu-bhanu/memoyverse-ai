@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Cat = "All"|"Certificate"|"Project"|"Internship"|"Research"|"Achievement";
-const FILTERS: Cat[] = ["All","Certificate","Project","Internship","Research","Achievement"];
-const ICONS: Record<string,string> = {Certificate:"🏅",Project:"🚀",Internship:"💼",Research:"🔬",Achievement:"🏆",Resume:"📄",Other:"📌",Skill:"⚡"};
-const COLORS: Record<string,string> = {Certificate:"#F59E0B",Project:"#2563EB",Internship:"#7C3AED",Research:"#059669",Achievement:"#EA580C",Resume:"#6B6B6F",Other:"#9A9A9E",Skill:"#DB2777"};
+type Cat = "All"|"Certifications"|"Projects"|"Internships"|"Academics"|"Achievements";
+const FILTERS: Cat[] = ["All","Certifications","Projects","Internships","Academics","Achievements"];
+const ICONS: Record<string,string> = {Certifications:"🏅",Projects:"🚀",Internships:"💼",Academics:"🔬",Achievements:"🏆",Resume:"📄",Other:"📌",Skills:"⚡"};
+const COLORS: Record<string,string> = {Certifications:"#F59E0B",Projects:"#2563EB",Internships:"#7C3AED",Academics:"#059669",Achievements:"#EA580C",Resume:"#6B6B6F",Other:"#9A9A9E",Skills:"#DB2777"};
 
 export default function Journey() {
   const router = useRouter();
