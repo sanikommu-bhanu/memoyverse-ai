@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { Store, MemDoc, ChatMsg, Profile, OAuthTokens } from "./types";
 
-const DIR = path.join(process.cwd(), "data");
+const DIR = path.join(os.tmpdir(), "memoryverse_data");
 const FILE = path.join(DIR, "store.json");
 const empty = (): Store => ({ docs: [], chat: [], profile: null, tokens: {} });
 
