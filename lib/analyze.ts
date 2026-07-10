@@ -18,13 +18,13 @@ function localExtract(text: string): Entities {
 
 function localCat(text: string, name: string): DocCat {
   const t = (text + " " + name).toLowerCase();
-  if (/certif|completion|credential/.test(t)) return "Certificate";
-  if (/intern(ship)?/.test(t)) return "Internship";
-  if (/research|paper|journal|publication|thesis/.test(t)) return "Research";
-  if (/award|winner|achievement|hackathon|finalist|prize/.test(t)) return "Achievement";
+  if (/certif|completion|credential/.test(t)) return "Certifications";
+  if (/intern(ship)?/.test(t)) return "Internships";
+  if (/research|paper|journal|publication|thesis|academic|degree|bachelor|master|phd/.test(t)) return "Academics";
+  if (/award|winner|achievement|hackathon|finalist|prize/.test(t)) return "Achievements";
   if (/resume|curriculum vitae|\bcv\b/.test(t)) return "Resume";
-  if (/project|github|repositor/.test(t)) return "Project";
-  if (/skill/.test(t)) return "Skill";
+  if (/project|github|repositor/.test(t)) return "Projects";
+  if (/skill/.test(t)) return "Skills";
   return "Other";
 }
 
@@ -55,7 +55,7 @@ async function geminiAnalyze(text: string, fileName: string): Promise<Omit<Analy
 Extract information from this document and return ONLY valid JSON (no markdown fences):
 {
   "title": "concise title max 8 words",
-  "cat": "Certificate|Project|Internship|Skill|Research|Achievement|Resume|Other",
+  "cat": "Certifications|Projects|Internships|Skills|Academics|Achievements|Resume|Other",
   "summary": "2 clear sentences about what this document represents for the person's career",
   "entities": {
     "skills": ["skill1","skill2"],

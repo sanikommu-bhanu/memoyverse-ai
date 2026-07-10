@@ -1,46 +1,116 @@
-const KEY = process.env.GEMINI_API_KEY || "";
-const BASE = "https://generativelanguage.googleapis.com/v1beta";
-export const hasKey = () => KEY.length > 10;
+import { GoogleGenAI } from "@google/genai";
 
-async function gPost(url: string, body: object) {
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`Gemini ${r.status}: ${await r.text()}`);
-  return r.json();
+// ─── 1. Client Initialization ───────────────────────────────────────────────
+// We no longer validate based on "AIza..." prefix. Any valid key format works.
+const KEY = process.env.GEMINI_API_KEY || "";
+export const hasKey = () => Boolean(KEY && KEY.trim().length > 0);
+
+let aiClient: GoogleGenAI | null = null;
+function getAI() {
+  if (!aiClient && hasKey()) {
+    // Official SDK initialization
+    aiClient = new GoogleGenAI({ apiKey: KEY });
+  }
+  return aiClient;
 }
 
-/** Real 768-dim Gemini embedding via text-embedding-004 */
+// ─── 2. Retry Logic & Error Handling ────────────────────────────────────────
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+function formatError(e: any): never {
+  const msg = e?.message || String(e);
+  if (msg.includes("API key not valid") || msg.includes("400") || msg.includes("404") || msg.includes("NOT_FOUND")) {
+    throw new Error("Invalid API key");
+  }
+  if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) {
+    throw new Error("Rate limit exceeded");
+  }
+  if (msg.includes("503") || msg.includes("500") || msg.includes("Unavailable")) {
+    throw new Error("Service unavailable. The AI service is currently down.");
+  }
+  if (e?.name === "TimeoutError" || msg.includes("timeout")) {
+    throw new Error("Request timed out.");
+  }
+  throw new Error(`Network error or AI failure: ${msg}`);
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  let lastError;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      lastError = e;
+      const msg = e?.message || "";
+      // Don't retry on 400/404 Invalid Key or Timeouts
+      if (e?.name === "TimeoutError" || msg.includes("API key not valid") || msg.includes("400") || msg.includes("404") || msg.includes("NOT_FOUND")) {
+        break;
+      }
+      // Exponential backoff for 429 and 500s
+      const backoff = Math.min(1000 * Math.pow(2, attempt), 8000);
+      await delay(backoff);
+    }
+  }
+  return formatError(lastError);
+}
+
+// ─── 3. Operations ──────────────────────────────────────────────────────────
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const e = new Error("Request timed out.");
+      e.name = "TimeoutError";
+      reject(e);
+    }, ms);
+    promise.then(resolve).catch(reject).finally(() => clearTimeout(timer));
+  });
+}
+
+/** Real 768-dim Gemini embedding via gemini-embedding-2 */
 export async function embed(text: string): Promise<number[]> {
   if (!hasKey()) return localEmbed(text);
   try {
-    const d = await gPost(
-      `${BASE}/models/text-embedding-004:embedContent?key=${KEY}`,
-      { model: "models/text-embedding-004", content: { parts: [{ text: text.slice(0, 8000) }] } }
-    );
-    return d.embedding.values as number[];
-  } catch {
+    return await withRetry(async () => {
+      const ai = getAI();
+      if (!ai) throw new Error("No AI client");
+      const res = await withTimeout(ai.models.embedContent({
+        model: "gemini-embedding-2",
+        contents: text.slice(0, 8000),
+      }), 8000);
+      return res.embeddings?.[0]?.values || localEmbed(text);
+    });
+  } catch (e: any) {
+    console.warn(`[AI Fallback] Embedding failed: ${e?.message}`);
     return localEmbed(text);
   }
 }
 
-/** Real Gemini 1.5 Flash generation */
-export async function generate(prompt: string, max = 1200): Promise<string> {
-  if (!hasKey()) throw new Error("NO_KEY");
-  const d = await gPost(
-    `${BASE}/models/gemini-1.5-flash:generateContent?key=${KEY}`,
-    { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: max } }
-  );
-  return d.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ?? "";
+/** Generate text using gemini-flash-latest */
+export async function generate(prompt: string, maxTokens = 800): Promise<string> {
+  if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
+  return await withRetry(async () => {
+    const ai = getAI();
+    if (!ai) throw new Error("No AI client");
+    const res = await withTimeout(ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: prompt,
+      config: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.1,
+      }
+    }), 12000);
+    const text = res.text;
+    if (!text) throw new Error("Empty response from AI");
+    return text.trim();
+  });
 }
 
 export function parseJSON<T>(t: string, fb: T): T {
   try { return JSON.parse(t.replace(/```json|```/gi, "").trim()) as T; } catch { return fb; }
 }
 
-// 128-dim local fallback embedding
+// ─── 4. Local Fallback (unchanged) ──────────────────────────────────────────
 const VOCAB = [
   "python","javascript","typescript","react","node","java","c++","tensorflow","pytorch",
   "machine learning","deep learning","computer vision","nlp","sql","mongodb","firebase",

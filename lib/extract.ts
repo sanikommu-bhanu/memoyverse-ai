@@ -17,6 +17,11 @@ export async function extractText(filePath: string, mime: string, name: string):
     if ([".txt",".md",".csv",".json",".log",".html"].includes(ext) || mime.startsWith("text/")) {
       return fs.readFileSync(filePath, "utf-8");
     }
+    if ([".png", ".jpg", ".jpeg"].includes(ext) || mime.startsWith("image/")) {
+      const Tesseract = await import("tesseract.js");
+      const r = await Tesseract.recognize(filePath, "eng");
+      return r.data.text || "";
+    }
     // Best-effort binary read
     try {
       const raw = fs.readFileSync(filePath, "utf-8");

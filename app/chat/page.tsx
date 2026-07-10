@@ -7,27 +7,89 @@ export default function Chat() {
   const [msgs, setMsgs] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetch("/api/chat").then(r=>r.json()).then(d=>setMsgs(d.chat||[])); },[]);
-  useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs,loading]);
+  useEffect(() => {
+    // Check network status
+    const updateOnlineStatus = () => setIsOffline(!navigator.onLine);
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
+
+    // Load initial from localStorage in case offline
+    const cached = localStorage.getItem("mv_offline_chat");
+    if (cached) {
+      try { setMsgs(JSON.parse(cached)); } catch {}
+    }
+
+    // Fetch from server if online
+    if (navigator.onLine) {
+      fetch("/api/chat").then(r=>r.json()).then(d=>{
+        if (d.chat) {
+          setMsgs(d.chat);
+          localStorage.setItem("mv_offline_chat", JSON.stringify(d.chat));
+        }
+      }).catch(console.error);
+    }
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
+
+  useEffect(() => { 
+    endRef.current?.scrollIntoView({behavior:"smooth"}); 
+    if (msgs.length > 0) {
+      localStorage.setItem("mv_offline_chat", JSON.stringify(msgs));
+    }
+  }, [msgs, loading]);
 
   const send = async (text?: string) => {
     const q = (text||input).trim();
     if (!q || loading) return;
     setInput("");
+    
     const userMsg = { id:`u${Date.now()}`, role:"user", content:q, at:new Date().toISOString() };
     setMsgs(m=>[...m, userMsg]);
+
+    if (isOffline) {
+      setMsgs(m=>[...m, {id:`e${Date.now()}`, role:"assistant", content:"You are currently offline. Please reconnect to chat with the AI.", at:new Date().toISOString()}]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({question:q}),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       const d = await res.json();
+      if (!res.ok) {
+        throw new Error(d.error || "Something went wrong.");
+      }
       if (d.msg) setMsgs(m=>[...m, d.msg]);
-    } catch { setMsgs(m=>[...m,{id:`e${Date.now()}`,role:"assistant",content:"Something went wrong. Please try again.",at:new Date().toISOString()}]); }
+    } catch (e: any) { 
+      let errMsg = e?.message || "Something went wrong. Please try again.";
+      if (e.name === "AbortError") errMsg = "Request timed out. Please try again.";
+      setMsgs(m=>[...m,{id:`e${Date.now()}`,role:"assistant",content:errMsg,at:new Date().toISOString()}]); 
+    }
     finally { setLoading(false); }
   };
 
-  const clearChat = async () => { await fetch("/api/chat",{method:"DELETE"}); setMsgs([]); };
+  const clearChat = async () => { 
+    if (!isOffline) await fetch("/api/chat",{method:"DELETE"}).catch(()=>{}); 
+    setMsgs([]); 
+    localStorage.removeItem("mv_offline_chat");
+  };
 
   return (
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"#fff",paddingTop:56}}>
@@ -35,7 +97,7 @@ export default function Chat() {
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px 14px",borderBottom:"1px solid #EAEAEA",flexShrink:0}}>
         <div>
           <h1 style={{fontSize:17,fontWeight:700,color:"#111",margin:0}}>AI Assistant</h1>
-          <p style={{fontSize:11,color:"#9A9A9E",margin:0}}>RAG-powered · searches your real documents</p>
+          <p style={{fontSize:11,color:"#9A9A9E",margin:0}}>RAG-powered · searches your real documents {isOffline && <span style={{color:"#FF453A"}}>(Offline)</span>}</p>
         </div>
         <button onClick={clearChat} style={{background:"#F5F5F7",border:"1px solid #EAEAEA",borderRadius:12,padding:"6px 12px",fontSize:12,fontWeight:500,cursor:"pointer",color:"#6B6B6F"}}>Clear</button>
       </div>

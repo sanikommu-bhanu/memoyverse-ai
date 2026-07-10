@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const buf = Buffer.from(bytes);
+    const os = await import("os");
+    const path = await import("path");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const tmp = `/tmp/mv_${Date.now()}_${safeName}`;
+    const tmp = path.join(os.tmpdir(), `mv_${Date.now()}_${safeName}`);
     fs.writeFileSync(tmp, buf);
 
     let fileUrl = "";

@@ -1,4 +1,4 @@
-export type DocCat = "Certificate"|"Project"|"Internship"|"Skill"|"Research"|"Achievement"|"Resume"|"Other";
+export type DocCat = "Certifications"|"Projects"|"Internships"|"Skills"|"Academics"|"Achievements"|"Resume"|"Other";
 
 export interface Entities {
   skills: string[];

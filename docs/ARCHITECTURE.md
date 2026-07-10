@@ -31,7 +31,7 @@
 │                                                     │
 │              analyze.ts                             │
 │         ┌──────────────────────┐                   │
-│         │  Gemini 1.5 Flash    │                   │
+│         │  gemini-flash-latest │                   │
 │         │  → title             │                   │
 │         │  → category (8 types)│                   │
 │         │  → 2-sentence summary│                   │
@@ -42,7 +42,7 @@
 │         └──────────────────────┘                   │
 │                    +                               │
 │         ┌──────────────────────┐                   │
-│         │  text-embedding-004  │                   │
+│         │  gemini-embedding-2  │                   │
 │         │  → float[768]        │ ← Real vectors    │
 │         └──────────────────────┘                   │
 └─────────────────────────────────────────────────────┘
@@ -76,7 +76,7 @@ User: "What are my strongest AI skills?"
                     ▼
          ┌──────────────────────┐
          │   embed(question)    │
-         │  text-embedding-004  │
+         │  gemini-embedding-2  │
          │  → queryVec[768]     │
          └──────────┬───────────┘
                     │
@@ -102,7 +102,7 @@ User: "What are my strongest AI skills?"
                     │
                     ▼
          ┌──────────────────────┐
-         │  Gemini 1.5 Flash    │
+         │ gemini-flash-latest  │
          │                      │
          │  "Answer using ONLY  │
          │  retrieved docs.     │
@@ -117,7 +117,7 @@ User: "What are my strongest AI skills?"
 
 ```
 Local fallback (no API key):  128-dim  (VOCAB hash, fast, offline)
-text-embedding-004 (Gemini):  768-dim  (real semantic vectors)
+gemini-embedding-2 (Gemini):  768-dim  (real semantic vectors)
 text-embedding-ada-002:       1536-dim (OpenAI, paid)
 ```
 
@@ -157,11 +157,11 @@ User clicks "Connect GitHub"
 |-------|-----------|---------|
 | Framework | Next.js 14 App Router | Full-stack React |
 | Styling | Tailwind CSS + custom CSS | Mobile-first design system |
-| LLM | Gemini 1.5 Flash | Analysis, RAG, resume, portfolio |
-| Embeddings | text-embedding-004 | 768-dim semantic vectors |
-| Vector Math | TypeScript (lib/vector.ts) | Cosine similarity |
-| PDF Parsing | pdf-parse | Text extraction |
-| DOCX Parsing | mammoth | Word doc extraction |
+| LLM | `gemini-flash-latest` | Analysis, RAG, resume, portfolio |
+| Embeddings | `gemini-embedding-2` | 768-dim semantic vectors |
+| Vector Math | TypeScript (`lib/vector.ts`) | Cosine similarity |
+| PDF Parsing | `pdf-parse` | Text extraction |
+| DOCX Parsing | `mammoth` | Word doc extraction |
 | Storage | Node.js fs + JSON | File-based vector store |
-| OAuth | Custom (lib/oauth.ts) | GitHub, Google, LinkedIn, Microsoft |
+| OAuth | Custom (`lib/oauth.ts`) | GitHub, Google, LinkedIn, Microsoft |
 | API | Next.js Route Handlers | REST endpoints |

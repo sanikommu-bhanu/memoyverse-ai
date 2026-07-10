@@ -1,6 +1,6 @@
 import { retrieveTop } from "./vector";
 import { generate, hasKey } from "./gemini";
-import { getDocs, getProfile } from "./hybridStore";
+import { getDocs, getProfile, getChat } from "./hybridStore";
 
 export async function ragChat(question: string, userId = "local") {
   const hits = await retrieveTop(question, 6, userId);
@@ -9,11 +9,34 @@ export async function ragChat(question: string, userId = "local") {
     `[${h.doc.cat}] "${h.doc.title}" (${h.doc.year})\nSummary: ${h.doc.summary}\nSkills: ${h.doc.entities.skills.join(", ")||"n/a"}`
   ).join("\n\n---\n\n");
 
-  if (hasKey() && hits.length > 0) {
+  if (hasKey()) {
+    const history = await getChat(userId);
+    const recentHistory = history.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
+    
     try {
-      const answer = await generate(`You are MemoryVerse AI — a personal career assistant. Answer using ONLY the documents retrieved below. Be specific, warm, cite document titles. If context lacks the answer, say so honestly.\n\nRetrieved Documents:\n${context}\n\nQuestion: ${question}\n\nAnswer (2-4 sentences, cite documents):`, 600);
+      const answer = await generate(`You are MemoryVerse AI — a personal career assistant.
+Act as a warm, helpful conversational assistant. 
+If the user's input is a greeting, follow-up, or casual conversation (e.g. "hello", "thanks"), respond naturally.
+For questions about their career, experience, or skills, rely ONLY on the Retrieved Documents below. Be specific and cite document titles. If the context lacks the answer, say so honestly.
+
+Recent Conversation History:
+${recentHistory || "No previous messages."}
+
+Retrieved Documents:
+${context || "No relevant documents found."}
+
+User's Latest Input: ${question}
+
+Response (keep it concise, 2-4 sentences):`, 800);
       return { answer, sources };
-    } catch { /* fallback */ }
+    } catch (e: any) {
+      // Fallback: Show the descriptive error but also include the local search results
+      const apiError = e?.message || "Service unavailable";
+      const fallbackDocs = hits.length 
+        ? `\n\nHowever, based on local search, I found ${hits.length} relevant item(s): ${hits.slice(0,3).map(h=>h.doc.title).join(", ")}. ${hits[0].doc.summary}` 
+        : `\n\nI also couldn't find any strong local matches for "${question}".`;
+      return { answer: `[AI API Error: ${apiError}]${fallbackDocs}`, sources };
+    }
   }
   const docs = await getDocs(userId);
   if (!docs.length) return { answer:"Upload your first document and I will answer from your real career data using AI-powered semantic search.", sources:[] };
