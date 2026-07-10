@@ -50,7 +50,19 @@ export async function buildResume(template: string, userId = "local") {
   const lines = docs.map(d=>`${d.cat}: ${d.title} (${d.year}) - ${d.summary} [${d.entities.skills.join(", ")}]`).join("\n");
   if (hasKey()) {
     try {
-      return await generate(`Generate a ${template}-style professional resume in clean Markdown for ${p?.name||"the user"}, ${p?.title||"a professional"}. Email: ${p?.email||""}. Location: ${p?.location||""}. Use ONLY real data below. Format with: ## Summary, ## Skills, ## Projects, ## Experience, ## Certifications, ## Achievements. ATS-friendly.\n\nSource Data:\n${lines||"No documents uploaded yet."}`, 1400);
+      const prompt = `Generate a ${template}-style professional resume in highly structured Markdown for ${p?.name||"the user"}, ${p?.title||"Professional"}.
+Email: ${p?.email||""}. Location: ${p?.location||""}.
+
+Use the following Source Data exactly:
+${lines||"No documents uploaded yet."}
+
+Requirements:
+- Make it visually striking but ATS-friendly.
+- Use horizontal rules (---) to separate sections.
+- For experience and projects, use bold titles, dates aligned to the right (if possible via simple markdown), and bullet points for descriptions.
+- Emphasize quantifiable achievements if available.
+- Include sections: SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION/CERTIFICATIONS.`;
+      return await generate(prompt, 1800);
     } catch { /* fallback */ }
   }
   const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,18);
@@ -58,7 +70,7 @@ export async function buildResume(template: string, userId = "local") {
   const intern = docs.filter(d=>d.cat==="Internships");
   const cert = docs.filter(d=>d.cat==="Certifications");
   const ach = docs.filter(d=>d.cat==="Achievements");
-  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## Summary\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n## Skills\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n## Projects\n${proj.map(d=>`### ${d.title} (${d.year})\n${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n## Experience\n${intern.map(d=>`### ${d.title} (${d.year})\n${d.entities.orgs?.[0]||""}\n${d.summary}`).join("\n\n")||"_No internships uploaded yet_"}\n\n## Certifications\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n## Achievements\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
+  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No internships uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
 }
 
 export async function buildPortfolioHTML(userId = "local") {
@@ -69,7 +81,170 @@ export async function buildPortfolioHTML(userId = "local") {
   const intern = docs.filter(d=>d.cat==="Internships");
   const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,24);
   const imgs = ["1555066931-4365d14bab8c","1517694712202-14dd9538aa97","1607799279861-4dd421887fb3","1516321318423-f06f85e504b3"];
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${p?.name||"Portfolio"} - MemoryVerse AI</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"/><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,sans-serif;background:#fff;color:#111;line-height:1.6;-webkit-font-smoothing:antialiased}.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#111;color:#fff;padding:40px 24px;position:relative}.hero::before{content:"";position:absolute;inset:0;background:url(https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1400&q=80) center/cover;opacity:.15}.hero-c{position:relative;z-index:1}.hero h1{font-family:"Playfair Display",serif;font-size:clamp(2.5rem,6vw,4rem);font-weight:900;margin-bottom:12px}nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-bottom:1px solid #eee;padding:16px 40px;display:flex;align-items:center;justify-content:space-between}nav ul{display:flex;gap:24px;list-style:none}nav a{text-decoration:none;color:#6B6B6F;font-size:.9rem;font-weight:500}section{max-width:960px;margin:0 auto;padding:80px 24px}h2{font-size:1.75rem;font-weight:700;margin-bottom:8px}.sub{color:#6B6B6F;margin-bottom:48px}.tags{display:flex;flex-wrap:wrap;gap:10px}.sk{background:#F5F5F7;border:1px solid #EAEAEA;border-radius:999px;padding:8px 18px;font-size:.9rem;font-weight:500}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:48px}.card{background:#fff;border:1px solid #EAEAEA;border-radius:20px;overflow:hidden;transition:box-shadow .2s,transform .2s}.card:hover{box-shadow:0 12px 40px rgba(0,0,0,.1);transform:translateY(-4px)}.card img{width:100%;height:200px;object-fit:cover}.card-b{padding:20px}.card-b h3{font-size:1.05rem;font-weight:700;margin-bottom:6px}.meta{font-size:.8rem;color:#9A9A9E;margin-bottom:10px}.card-b p{font-size:.9rem;color:#6B6B6F;line-height:1.6}.cfoot{background:#111;color:#fff;padding:80px 24px;text-align:center}footer{padding:24px;text-align:center;color:#9A9A9E;font-size:.8rem;border-top:1px solid #EAEAEA}@media(max-width:640px){nav ul{display:none}}</style></head><body><nav><span style="font-weight:700">✦ ${p?.name||"Portfolio"}</span><ul><li><a href="#skills">Skills</a></li>${proj.length?'<li><a href="#projects">Projects</a></li>':""}${cert.length?'<li><a href="#certs">Certs</a></li>':""}<li><a href="#contact">Contact</a></li></ul></nav><div class="hero"><div class="hero-c"><h1>${p?.name||"Your Name"}</h1><p style="font-size:1.15rem;opacity:.75">${p?.title||"AI Enthusiast & Developer"}</p>${p?.location?`<p style="opacity:.5;font-size:.9rem">📍 ${p.location}</p>`:""}<span style="display:inline-block;margin-top:24px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:10px 24px;font-size:.9rem">✦ AI-Generated Portfolio · ${docs.length} Documents</span></div></div><section id="about"><h2>About Me</h2><p class="sub" style="font-size:1.1rem;max-width:640px">${p?.bio||`${p?.title||"Professional"} building with AI, documented across ${docs.length} verified records.`}</p></section><div style="background:#F5F5F7;padding:1px 0" id="skills"><section><h2>Skills &amp; Technologies</h2><p class="sub">Auto-extracted from ${docs.length} document(s)</p><div class="tags">${skills.map(s=>`<span class="sk">${s}</span>`).join("")||"<p>Upload documents to populate</p>"}</div></section></div>${proj.length?`<section id="projects"><h2>Projects</h2><p class="sub">Real projects extracted by AI</p><div class="grid">${proj.map((p2,i)=>`<div class="card"><img src="https://images.unsplash.com/photo-${imgs[i%imgs.length]}?w=600&q=70" alt="${p2.title}" loading="lazy"/><div class="card-b"><h3>${p2.title}</h3><div class="meta">📅 ${p2.year}</div><p>${p2.summary}</p></div></div>`).join("")}</div></section>`:""}${cert.length?`<section id="certs"><h2>Certifications</h2><p class="sub">Verified certificates</p><div class="grid">${cert.map(c=>`<div class="card"><div class="card-b" style="padding:24px"><span style="font-size:2rem">🏅</span><h3 style="margin-top:12px">${c.title}</h3><div class="meta">${c.year}</div><p>${c.summary}</p></div></div>`).join("")}</div></section>`:""}<div class="cfoot" id="contact"><h2>Get In Touch</h2>${p?.email?`<p style="margin-top:16px;opacity:.8">✉️ ${p.email}</p>`:""}</div><footer>Generated by MemoryVerse AI · ${new Date().getFullYear()}</footer></body></html>`;
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>${p?.name||"Portfolio"} - MemoryVerse AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --bg: #0a0a0b; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #f3f4f6; --text-muted: #9ca3af; --accent: #3b82f6; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; scroll-behavior: smooth; }
+    ::selection { background: var(--accent); color: #fff; }
+    .bg-glow { position: fixed; top: -20%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 60%); filter: blur(80px); z-index: -1; pointer-events: none; }
+    .bg-glow-2 { position: fixed; bottom: -20%; right: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 60%); filter: blur(80px); z-index: -1; pointer-events: none; }
+    
+    nav { position: fixed; top: 0; width: 100%; z-index: 100; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,10,11,0.7); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); transition: all 0.3s ease; }
+    nav .logo { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+    nav ul { display: flex; gap: 32px; list-style: none; }
+    nav a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    nav a:hover { color: #fff; }
+
+    .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 24px; position: relative; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 24px; backdrop-filter: blur(10px); animation: fadeUp 1s ease 0.1s backwards; }
+    .hero h1 { font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 24px; background: linear-gradient(to right, #fff, #9ca3af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeUp 1s ease 0.3s backwards; }
+    .hero p { font-size: clamp(1.1rem, 2vw, 1.3rem); color: var(--text-muted); max-width: 600px; animation: fadeUp 1s ease 0.5s backwards; }
+
+    section { max-width: 1080px; margin: 0 auto; padding: 120px 24px; }
+    .section-header { margin-bottom: 64px; }
+    .section-header h2 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+    .section-header p { color: var(--text-muted); font-size: 1.1rem; }
+
+    .skills-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+    .skill-tag { background: var(--card); border: 1px solid var(--border); padding: 12px 24px; border-radius: 99px; font-weight: 500; color: #fff; font-size: 0.95rem; transition: all 0.3s ease; display: inline-block; }
+    .skill-tag:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 32px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; backdrop-filter: blur(10px); }
+    .card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255,255,255,0.06), transparent 40%); opacity: 0; transition: opacity 0.3s; z-index: 1; pointer-events: none; }
+    .card:hover::before { opacity: 1; }
+    .card:hover { transform: translateY(-8px); border-color: rgba(255,255,255,0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .card-img { width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--border); transition: transform 0.5s ease; }
+    .card:hover .card-img { transform: scale(1.05); }
+    .img-wrap { overflow: hidden; }
+    .card-body { padding: 32px; position: relative; z-index: 2; }
+    .card-badge { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; font-size: 0.75rem; font-weight: 600; color: #e5e7eb; margin-bottom: 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .card-body h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; line-height: 1.3; }
+    .card-body p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
+    .reveal.active { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 768px) { nav ul { display: none; } section { padding: 80px 24px; } }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="bg-glow-2"></div>
+  
+  <nav>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+      ${p?.name||"Portfolio"}
+    </div>
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#skills">Expertise</a></li>
+      ${proj.length ? '<li><a href="#projects">Work</a></li>' : ''}
+      ${cert.length ? '<li><a href="#certifications">Certifications</a></li>' : ''}
+    </ul>
+  </nav>
+
+  <header class="hero" id="about">
+    <div class="hero-badge">
+      <span style="width:8px;height:8px;background:#10b981;border-radius:50%;box-shadow:0 0 10px #10b981;"></span>
+      Available for Opportunities
+    </div>
+    <h1>${p?.name||"Creative Developer"}</h1>
+    <p>${p?.title||"Building digital experiences and AI solutions."}</p>
+    ${p?.location ? `<p style="margin-top:16px;font-size:0.95rem;color:rgba(255,255,255,0.4)">📍 ${p.location}</p>` : ''}
+  </header>
+
+  <section id="skills" class="reveal">
+    <div class="section-header">
+      <h2>Expertise</h2>
+      <p>Technologies and tools I work with daily</p>
+    </div>
+    <div class="skills-grid">
+      ${skills.map(s=>`<div class="skill-tag">${s}</div>`).join("")||"<p style='color:var(--text-muted)'>Upload documents to auto-populate</p>"}
+    </div>
+  </section>
+
+  ${proj.length ? `
+  <section id="projects" class="reveal">
+    <div class="section-header">
+      <h2>Selected Work</h2>
+      <p>A showcase of my recent projects</p>
+    </div>
+    <div class="grid" id="project-grid">
+      ${proj.map((p2,i)=>`
+      <article class="card">
+        <div class="img-wrap"><img src="https://images.unsplash.com/photo-${imgs[i%imgs.length]}?w=800&q=80" alt="${p2.title}" class="card-img" loading="lazy"/></div>
+        <div class="card-body">
+          <span class="card-badge">${p2.year}</span>
+          <h3>${p2.title}</h3>
+          <p>${p2.summary}</p>
+        </div>
+      </article>`).join("")}
+    </div>
+  </section>` : ""}
+
+  ${cert.length ? `
+  <section id="certifications" class="reveal">
+    <div class="section-header">
+      <h2>Certifications</h2>
+      <p>Verified professional credentials</p>
+    </div>
+    <div class="grid" id="cert-grid">
+      ${cert.map(c=>`
+      <article class="card">
+        <div class="card-body" style="padding: 40px 32px">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px;">🏅</div>
+          <span class="card-badge">${c.year}</span>
+          <h3>${c.title}</h3>
+          <p>${c.summary}</p>
+        </div>
+      </article>`).join("")}
+    </div>
+  </section>` : ""}
+
+  <footer>
+    <p>&copy; ${new Date().getFullYear()} ${p?.name||"Portfolio"}. Auto-generated via MemoryVerse AI.</p>
+  </footer>
+
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(r => observer.observe(r));
+
+    const handleGlow = (e, gridId) => {
+      const grid = document.getElementById(gridId);
+      if(!grid) return;
+      for(const card of grid.querySelectorAll('.card')) {
+        const rect = card.getBoundingClientRect(),
+              x = e.clientX - rect.left,
+              y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', \`\${x}px\`);
+        card.style.setProperty('--mouse-y', \`\${y}px\`);
+      }
+    };
+    window.addEventListener('mousemove', e => { handleGlow(e, 'project-grid'); handleGlow(e, 'cert-grid'); });
+  </script>
+</body>
+</html>`;
 }
 
 export async function getInsights(userId = "local") {
