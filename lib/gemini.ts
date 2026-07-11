@@ -75,7 +75,7 @@ export async function embed(text: string): Promise<number[]> {
       const ai = getAI();
       if (!ai) throw new Error("No AI client");
       const res = await withTimeout(ai.models.embedContent({
-        model: "gemini-embedding-2",
+        model: "text-embedding-004",
         contents: text.slice(0, 8000),
       }), 8000);
       return res.embeddings?.[0]?.values || localEmbed(text);
@@ -93,7 +93,7 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
     const ai = getAI();
     if (!ai) throw new Error("No AI client");
     const res = await withTimeout(ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         maxOutputTokens: maxTokens,

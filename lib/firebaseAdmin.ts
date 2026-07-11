@@ -24,14 +24,20 @@ function getAdminApp(): App | null {
     return adminApp;
   }
   try {
-    adminApp = initializeApp({
-      credential: cert({
-        projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID!,
-        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL!,
-        privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY!.replace(/\\n/g, "\n"),
-      }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
+      let pk = process.env.FIREBASE_ADMIN_PRIVATE_KEY!;
+      // Remove surrounding quotes if they were included when pasting into Vercel
+      pk = pk.replace(/^"|"$/g, "");
+      // Handle both escaped \n and actual newlines
+      pk = pk.replace(/\\n/g, "\n");
+
+      adminApp = initializeApp({
+        credential: cert({
+          projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID!,
+          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL!,
+          privateKey:  pk,
+        }),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      });
     return adminApp;
   } catch (e) {
     console.error("[FirebaseAdmin] Init failed:", e);
