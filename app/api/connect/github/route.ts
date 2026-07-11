@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/store";
 import { githubFetch } from "@/lib/oauth";
 import { analyzeDoc } from "@/lib/analyze";
 import { MemDoc } from "@/lib/types";
+import { addDoc } from "@/lib/hybridStore";
+import { verifyToken } from "@/lib/firebaseAdmin";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
   const token = db.getTokens().github;
   if (!token) return NextResponse.json({ error: "GitHub not connected" }, { status: 401 });
   try {
@@ -30,7 +33,7 @@ Last updated: ${r.updated_at?.slice(0, 4)}`;
         confidence: 90, embedding: analysis.embedding,
         uploadedAt: new Date().toISOString(), source: "github",
       };
-      db.addDoc(doc);
+      await addDoc(doc, uid);
       imported.push(doc);
     }
     return NextResponse.json({ ok: true, count: imported.length, docs: imported });

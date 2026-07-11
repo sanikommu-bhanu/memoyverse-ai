@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/store";
 import { driveFetch } from "@/lib/oauth";
 import { analyzeDoc } from "@/lib/analyze";
 import { MemDoc } from "@/lib/types";
+import { addDoc } from "@/lib/hybridStore";
+import { verifyToken } from "@/lib/firebaseAdmin";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
   const token = db.getTokens().google;
   if (!token) return NextResponse.json({ error: "Google Drive not connected" }, { status: 401 });
   try {
@@ -29,7 +32,7 @@ Modified: ${f.modifiedTime?.slice(0, 10)}`;
         confidence: 80, embedding: analysis.embedding,
         uploadedAt: new Date().toISOString(), source: "drive",
       };
-      db.addDoc(doc);
+      await addDoc(doc, uid);
       imported.push(doc);
     }
     return NextResponse.json({ ok: true, count: imported.length, docs: imported });
