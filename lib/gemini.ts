@@ -60,9 +60,9 @@ export async function embed(text: string): Promise<number[]> {
   if (!hasKey()) return localEmbed(text);
   try {
     return await withRetry(async () => {
-      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${KEY}`, {
+      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
         body: JSON.stringify({
           model: "models/text-embedding-004",
           content: { parts: [{ text: text.slice(0, 8000) }] }
@@ -82,9 +82,9 @@ export async function embed(text: string): Promise<number[]> {
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
   if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
   return await withRetry(async () => {
-    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KEY}`, {
+    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: maxTokens, temperature: 0.1 }
