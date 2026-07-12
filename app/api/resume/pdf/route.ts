@@ -5,52 +5,59 @@ import { marked } from "marked";
 // ── Template style definitions ─────────────────────────────────────────────────
 const TEMPLATE_STYLES: Record<string, string> = {
   ATS: `
-    body { font-family: 'Arial', sans-serif; font-size: 11pt; color: #111; line-height: 1.5; margin: 0; padding: 40px; }
-    h1 { font-size: 20pt; font-weight: bold; margin: 0 0 4px; border-bottom: 2px solid #111; padding-bottom: 6px; }
-    h2 { font-size: 12pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 6px; border-bottom: 1px solid #aaa; padding-bottom: 3px; color: #222; }
-    h3 { font-size: 11pt; font-weight: bold; margin: 10px 0 2px; }
-    p { margin: 2px 0 8px; }
-    ul { margin: 4px 0 8px; padding-left: 18px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Arial', 'Inter', sans-serif; font-size: 10.5pt; color: #000; line-height: 1.4; margin: 0; padding: 40px 48px; background: #fff; }
+    h1 { font-size: 22pt; font-weight: bold; margin: 0 0 4px; text-align: center; }
+    h1 + p { text-align: center; font-size: 9.5pt; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+    h2 { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin: 16px 0 8px; border-bottom: 1.5px solid #000; padding-bottom: 4px; color: #000; }
+    h3 { font-size: 10.5pt; font-weight: bold; margin: 8px 0 2px; display: inline-block; }
+    p { margin: 2px 0 6px; }
+    ul { margin: 4px 0 8px; padding-left: 24px; }
     li { margin-bottom: 3px; }
-    hr { border: none; border-top: 1px solid #ddd; margin: 14px 0; }
-    strong { font-weight: bold; }
+    hr { display: none; }
+    strong { font-weight: 600; }
+    em { font-style: italic; }
   `,
   Modern: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; font-size: 10.5pt; color: #1a1a2e; line-height: 1.6; margin: 0; padding: 40px; background: #fff; }
-    h1 { font-size: 28pt; font-weight: 700; margin: 0 0 4px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    h2 { font-size: 11pt; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #667eea; margin: 20px 0 8px; padding-left: 12px; border-left: 3px solid #667eea; }
-    h3 { font-size: 11pt; font-weight: 600; color: #1a1a2e; margin: 10px 0 2px; }
-    p { margin: 2px 0 8px; color: #444; }
-    ul { margin: 4px 0 8px; padding-left: 18px; }
-    li { margin-bottom: 4px; color: #444; }
-    hr { border: none; border-top: 1px solid #eee; margin: 16px 0; }
-    strong { color: #1a1a2e; font-weight: 600; }
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    body { font-family: 'Roboto', sans-serif; font-size: 10.5pt; color: #222; line-height: 1.5; margin: 0; padding: 48px; background: #fff; }
+    h1 { font-size: 26pt; font-weight: 700; margin: 0 0 2px; color: #111; letter-spacing: -0.5px; }
+    h1 + p { font-size: 9.5pt; color: #555; margin-bottom: 20px; }
+    h2 { font-size: 12pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #3b82f6; margin: 24px 0 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+    h3 { font-size: 11pt; font-weight: 700; color: #111; margin: 12px 0 2px; }
+    p { margin: 2px 0 6px; color: #333; }
+    ul { margin: 6px 0 10px; padding-left: 20px; }
+    li { margin-bottom: 4px; color: #333; }
+    hr { display: none; }
+    strong { font-weight: 700; color: #111; }
   `,
   Professional: `
-    @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Source+Sans+3:wght@400;600&display=swap');
-    body { font-family: 'Source Sans 3', sans-serif; font-size: 11pt; color: #2c2c2c; line-height: 1.55; margin: 0; padding: 40px 48px; }
-    h1 { font-family: 'Merriweather', serif; font-size: 22pt; font-weight: 700; margin: 0 0 6px; color: #1a1a1a; }
-    h2 { font-family: 'Merriweather', serif; font-size: 11pt; font-weight: 700; color: #1a365d; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 1.5px; }
-    h3 { font-size: 11pt; font-weight: 600; margin: 10px 0 2px; color: #2c2c2c; }
-    p { margin: 2px 0 8px; }
-    ul { margin: 4px 0 8px; padding-left: 20px; }
-    li { margin-bottom: 4px; }
-    hr { border: none; border-top: 2px solid #1a365d; margin: 14px 0; }
+    @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap');
+    body { font-family: 'Open Sans', sans-serif; font-size: 10pt; color: #000; line-height: 1.5; margin: 0; padding: 48px; background: #fff; }
+    h1 { font-family: 'Merriweather', serif; font-size: 24pt; font-weight: 700; margin: 0 0 4px; text-align: center; }
+    h1 + p { text-align: center; font-size: 9.5pt; margin-bottom: 20px; border-top: 1px solid #000; border-bottom: 3px double #000; padding: 6px 0; }
+    h2 { font-family: 'Merriweather', serif; font-size: 12pt; font-weight: 700; color: #000; margin: 20px 0 12px; text-transform: capitalize; display: flex; align-items: center; justify-content: center; text-align: center; }
+    h2::before, h2::after { content: ""; flex: 1; border-bottom: 1px solid #000; margin: 0 15px; }
+    h3 { font-size: 10.5pt; font-weight: 600; margin: 10px 0 2px; color: #000; }
+    p { margin: 2px 0 6px; }
+    ul { margin: 4px 0 8px; padding-left: 24px; }
+    li { margin-bottom: 3px; }
+    hr { display: none; }
     strong { font-weight: 600; }
   `,
   Minimal: `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
-    body { font-family: 'DM Sans', sans-serif; font-size: 10.5pt; color: #333; line-height: 1.7; margin: 0; padding: 48px 56px; background: #fff; }
-    h1 { font-size: 24pt; font-weight: 300; letter-spacing: -1px; margin: 0 0 4px; color: #111; }
-    h2 { font-size: 9pt; font-weight: 500; text-transform: uppercase; letter-spacing: 3px; color: #888; margin: 24px 0 10px; }
-    h3 { font-size: 11pt; font-weight: 500; margin: 10px 0 2px; color: #111; }
-    p { margin: 2px 0 8px; color: #555; }
-    ul { margin: 4px 0 8px; padding-left: 16px; list-style: none; }
-    li { margin-bottom: 4px; padding-left: 12px; position: relative; color: #555; }
-    li::before { content: '–'; position: absolute; left: 0; color: #bbb; }
-    hr { border: none; border-top: 1px solid #eee; margin: 18px 0; }
-    strong { font-weight: 500; color: #111; }
+    body { font-family: 'DM Sans', sans-serif; font-size: 10pt; color: #333; line-height: 1.6; margin: 0; padding: 56px 64px; background: #fff; }
+    h1 { font-size: 22pt; font-weight: 300; letter-spacing: -1px; margin: 0 0 8px; color: #000; text-align: center; }
+    h1 + p { text-align: center; font-size: 9pt; color: #666; margin-bottom: 32px; }
+    h2 { font-size: 9pt; font-weight: 500; text-transform: uppercase; letter-spacing: 3px; color: #000; margin: 24px 0 12px; text-align: center; }
+    h3 { font-size: 10.5pt; font-weight: 500; margin: 12px 0 2px; color: #111; }
+    p { margin: 2px 0 8px; color: #444; }
+    ul { margin: 6px 0 12px; padding-left: 16px; list-style: none; }
+    li { margin-bottom: 4px; padding-left: 12px; position: relative; color: #444; }
+    li::before { content: '–'; position: absolute; left: 0; color: #aaa; }
+    hr { display: none; }
+    strong { font-weight: 500; color: #000; }
   `,
 };
 

@@ -17,7 +17,7 @@ Keyword search (`string.includes("python")`) fails when:
 - You search "2024 work" but the doc says "completed last year"
 - Documents are in different languages or use synonyms
 
-Our implementation uses `text-embedding-004` (Google's production embedding model) to map every document into a 768-dimensional vector space. At query time, we embed the question and compute cosine similarity against all stored vectors. Documents with similar meaning — not just overlapping words — surface at the top.
+Our implementation uses `embed-english-v3.0` (Google's production embedding model) to map every document into a 1024-dimensional vector space. At query time, we embed the question and compute cosine similarity against all stored vectors. Documents with similar meaning — not just overlapping words — surface at the top.
 
 This is the same technique used in ChatGPT's retrieval, Notion AI, and enterprise knowledge bases.
 
@@ -27,7 +27,7 @@ We considered Qdrant (self-hosted Docker) and Pinecone (free tier). We chose fil
 
 A judge should clone the repo, run `npm install`, and see a working demo in 2 minutes. A Docker container or cloud account adds failure points that could ruin a demo.
 
-Our file-based approach stores the raw 768-dim vectors in `data/store.json` and runs cosine similarity in TypeScript. For <1000 documents this runs in under 10ms. The math is identical to a hosted vector DB — we removed the network hop.
+Our file-based approach stores the raw 1024-dim vectors in `data/store.json` and runs cosine similarity in TypeScript. For <1000 documents this runs in under 10ms. The math is identical to a hosted vector DB — we removed the network hop.
 
 Engineering trade-off: demo reliability over horizontal scale. Correct for a hackathon.
 
@@ -39,7 +39,7 @@ Our RAG pipeline:
 1. Embeds the question
 2. Finds the 6 most semantically relevant documents
 3. Injects them as grounded context
-4. Prompts Gemini: "Answer using ONLY the retrieved documents"
+4. Prompts Cohere: "Answer using ONLY the retrieved documents"
 5. Returns cited sources with similarity scores
 
 This means every AI answer is traceable to a real uploaded document. The user can see which documents were used and what their match scores were.
@@ -70,7 +70,7 @@ The app demonstrates its complete value proposition without any external service
 ## What We Would Add With More Time
 
 1. **Streaming chat**: Server-Sent Events for token-by-token output
-2. **Multimodal upload**: Gemini Vision for certificate images (no OCR needed)
+2. **Multimodal upload**: Cohere Vision for certificate images (no OCR needed)
 3. **Cross-document reasoning**: "Compare my 2023 and 2024 internships"
 4. **Real vector DB migration**: Qdrant for metadata filtering at vector level
 5. **LinkedIn profile scraping**: Import experience/education sections as timeline events

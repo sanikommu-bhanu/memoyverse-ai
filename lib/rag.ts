@@ -50,18 +50,20 @@ export async function buildResume(template: string, userId = "local") {
   const lines = docs.map(d=>`${d.cat}: ${d.title} (${d.year}) - ${d.summary} [${(d.entities?.skills || []).join(", ")}]`).join("\n");
   if (hasKey()) {
     try {
-      const prompt = `Generate a ${template}-style professional resume in highly structured Markdown for ${p?.name||"the user"}, ${p?.title||"Professional"}.
-Email: ${p?.email||""}. Location: ${p?.location||""}.
+      const prompt = `Generate a highly professional "${template}" style resume in strict Markdown for ${p?.name||"the user"}.
+Name must be an h1 heading (# Name).
+Immediately following the name, create exactly one paragraph containing the contact info separated by pipes: ${p?.email||"email@example.com"} | ${p?.location||"City, Country"} | LinkedIn/GitHub if available.
 
 Use the following Source Data exactly:
 ${lines||"No documents uploaded yet."}
 
 Requirements:
-- Make it visually striking but ATS-friendly.
-- Use horizontal rules (---) to separate sections.
-- For experience and projects, use bold titles, dates aligned to the right (if possible via simple markdown), and bullet points for descriptions.
-- Emphasize quantifiable achievements if available.
-- Include sections: SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION/CERTIFICATIONS.`;
+- Sections must be h2 headings (## SUMMARY, ## SKILLS, ## EXPERIENCE, ## PROJECTS, ## EDUCATION).
+- Job titles, Project titles, and Degrees must be h3 headings (### Title).
+- Do not use tables. 
+- Put the date in the same line as the job title or the line immediately following it as italicized text.
+- Use clean bullet points for all descriptions.
+- Ensure the formatting is flawless and ATS-friendly.`;
       return await generate(prompt, 1800);
     } catch { /* fallback */ }
   }
@@ -72,9 +74,7 @@ Requirements:
   const ach = docs.filter(d=>d.cat==="Achievements");
   const acad = docs.filter(d=>d.cat==="Academics");
   return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities?.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No experience uploaded yet_"}\n\n---\n\n## EDUCATION\n${acad.map(d=>`### ${d.title} (${d.year})\n**${d.entities?.orgs?.[0]||"Institution"}**\n- ${d.summary}`).join("\n\n")||"_No education uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities?.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
-}
-
-export async function buildPortfolioHTML(userId = "local") {
+}export async function buildPortfolioHTML(userId = "local") {
   const docs = await getDocs(userId);
   const p = await getProfile(userId);
   const proj = docs.filter(d=>d.cat==="Projects");
@@ -84,222 +84,185 @@ export async function buildPortfolioHTML(userId = "local") {
   const ach = docs.filter(d=>d.cat==="Achievements");
   const skills = [...new Set(docs.flatMap(d=>d.entities?.skills || []))].slice(0,24);
 
-  // Build a deterministic initials-based SVG avatar if no real photo exists
   const initials = (p?.name || "U").split(" ").map((w: string) => w[0]).slice(0,2).join("").toUpperCase();
   const avatarEl = p?.avatar
-    ? `<img src="${p.avatar}" alt="${p?.name}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.15);margin-bottom:24px;animation:fadeUp 1s ease 0.2s backwards;"/>`
-    : `<div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;color:#fff;margin:0 auto 24px;animation:fadeUp 1s ease 0.2s backwards;">${initials}</div>`; 
+    ? `<img src="${p.avatar}" alt="${p?.name}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-2xl shadow-sky-500/30 border border-white/10 mb-8" />`
+    : `<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-sky-500/30 border border-white/10 mb-8"><span class="text-white font-bold text-4xl sm:text-5xl">${initials}</span></div>`;
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${p?.name||"Portfolio"} - MemoryVerse AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${p?.name || "Portfolio"}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: { background: '#070d1a', foreground: '#f8fafc', primary: '#0ea5e9' }
+        }
+      }
+    }
+  </script>
   <style>
-    :root { --bg: #0a0a0b; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #f3f4f6; --text-muted: #9ca3af; --accent: #3b82f6; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; scroll-behavior: smooth; }
-    ::selection { background: var(--accent); color: #fff; }
-    .bg-glow { position: fixed; top: -20%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 60%); filter: blur(80px); z-index: -1; pointer-events: none; }
-    .bg-glow-2 { position: fixed; bottom: -20%; right: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 60%); filter: blur(80px); z-index: -1; pointer-events: none; }
-    
-    nav { position: fixed; top: 0; width: 100%; z-index: 100; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,10,11,0.7); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); transition: all 0.3s ease; }
-    nav .logo { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
-    nav ul { display: flex; gap: 32px; list-style: none; }
-    nav a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
-    nav a:hover { color: #fff; }
-
-    .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 24px; position: relative; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 24px; backdrop-filter: blur(10px); animation: fadeUp 1s ease 0.1s backwards; }
-    .hero h1 { font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 24px; background: linear-gradient(to right, #fff, #9ca3af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeUp 1s ease 0.3s backwards; }
-    .hero-subtitle { font-size: clamp(1.1rem, 2vw, 1.3rem); color: var(--text-muted); max-width: 600px; animation: fadeUp 1s ease 0.5s backwards; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--text-muted); width: fit-content; margin: 0 auto; animation: typing 2.5s steps(40,end) 0.8s both, blink 0.75s step-end 0.8s 4; }
-    @keyframes typing { from { width: 0; } to { width: 100%; } }
-    @keyframes blink { from,to { border-color: transparent; } 50% { border-color: var(--text-muted); } }
-
-    section { max-width: 1080px; margin: 0 auto; padding: 120px 24px; }
-    .section-header { margin-bottom: 64px; }
-    .section-header h2 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
-    .section-header p { color: var(--text-muted); font-size: 1.1rem; }
-
-    .skills-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-    .skill-tag { background: var(--card); border: 1px solid var(--border); padding: 12px 24px; border-radius: 99px; font-weight: 500; color: #fff; font-size: 0.95rem; transition: all 0.3s ease; display: inline-block; }
-    .skill-tag:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 32px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; backdrop-filter: blur(10px); }
-    .card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255,255,255,0.06), transparent 40%); opacity: 0; transition: opacity 0.3s; z-index: 1; pointer-events: none; }
-    .card:hover::before { opacity: 1; }
-    .card:hover { transform: translateY(-8px); border-color: rgba(255,255,255,0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-    .card-img { width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--border); transition: transform 0.5s ease; }
-    .card:hover .card-img { transform: scale(1.05); }
-    .img-wrap { overflow: hidden; }
-    .card-body { padding: 32px; position: relative; z-index: 2; }
-    .card-badge { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; font-size: 0.75rem; font-weight: 600; color: #e5e7eb; margin-bottom: 16px; letter-spacing: 0.05em; text-transform: uppercase; }
-    .card-body h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; line-height: 1.3; }
-    .card-body p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; }
-
-    footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
-
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.9s cubic-bezier(0.5, 0, 0, 1); }
+    body { background-color: #070d1a; color: #f8fafc; overflow-x: hidden; scroll-behavior: smooth; }
+    .glass-card { background: rgba(255,255,255,0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+    .border-gradient { position: relative; }
+    .border-gradient::before { content: ""; position: absolute; inset: 0; padding: 1px; border-radius: inherit; background: linear-gradient(to bottom right, rgba(255,255,255,0.2), transparent); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+    .gradient-text { background: linear-gradient(to right, #0ea5e9, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
     .reveal.active { opacity: 1; transform: translateY(0); }
-    .reveal:nth-child(1) { transition-delay: 0s; }
-    .reveal:nth-child(2) { transition-delay: 0.15s; }
-    .reveal:nth-child(3) { transition-delay: 0.3s; }
-    .reveal:nth-child(4) { transition-delay: 0.45s; }
-    .reveal:nth-child(5) { transition-delay: 0.6s; }
-    .reveal:nth-child(6) { transition-delay: 0.75s; }
-
-    @media (max-width: 768px) { nav ul { display: none; } section { padding: 80px 24px; } }
+    .card-hover:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
   </style>
 </head>
-<body>
-  <div class="bg-glow"></div>
-  <div class="bg-glow-2"></div>
+<body class="antialiased selection:bg-primary selection:text-white">
   
-  <nav>
-    <div class="logo">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
-      ${p?.name||"Portfolio"}
-    </div>
-    <ul>
-      <li><a href="#about">About</a></li>
-      <li><a href="#skills">Expertise</a></li>
-      ${proj.length ? '<li><a href="#projects">Work</a></li>' : ''}
-      ${intern.length ? '<li><a href="#experience">Experience</a></li>' : ''}
-      ${acad.length ? '<li><a href="#education">Education</a></li>' : ''}
-      ${cert.length ? '<li><a href="#certifications">Certifications</a></li>' : ''}
-      ${ach.length ? '<li><a href="#achievements">Achievements</a></li>' : ''}
-    </ul>
-  </nav>
+  <!-- Glowing Background Orbs -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-[-1]">
+    <div class="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-sky-500/10 blur-[120px]"></div>
+    <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-violet-500/10 blur-[120px]"></div>
+  </div>
 
-  <header class="hero" id="about">
-    <div class="hero-badge">
-      <span style="width:8px;height:8px;background:#10b981;border-radius:50%;box-shadow:0 0 10px #10b981;"></span>
-      Available for Opportunities
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="font-bold tracking-tight text-lg flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-violet-600 flex items-center justify-center text-xs shadow-lg shadow-sky-500/20">${initials}</div>
+        ${p?.name?.split(" ")[0] || "Portfolio"}
+      </div>
+      <nav class="hidden md:flex gap-6 text-sm font-medium text-slate-400">
+        <a href="#about" class="hover:text-white transition">About</a>
+        <a href="#skills" class="hover:text-white transition">Expertise</a>
+        ${proj.length ? '<a href="#projects" class="hover:text-white transition">Work</a>' : ''}
+        ${intern.length ? '<a href="#experience" class="hover:text-white transition">Experience</a>' : ''}
+      </nav>
+      <a href="mailto:${p?.email || ""}" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition shadow-lg shadow-primary/25">Contact</a>
     </div>
-    ${avatarEl}
-    <h1>${p?.name||"Creative Developer"}</h1>
-    <p class="hero-subtitle">${p?.title||"Building digital experiences and AI solutions."}</p>
-    ${p?.location ? `<p style="margin-top:16px;font-size:0.95rem;color:rgba(255,255,255,0.4)">📍 ${p.location}</p>` : ''}
   </header>
 
-  <section id="skills" class="reveal">
-    <div class="section-header">
-      <h2>Expertise</h2>
-      <p>Technologies and tools I work with daily</p>
+  <!-- Hero Section -->
+  <main id="about" class="pt-32 pb-20 px-6 max-w-4xl mx-auto text-center flex flex-col items-center min-h-[90vh] justify-center reveal">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card text-xs text-emerald-400 font-medium mb-8 border border-emerald-400/20">
+      <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
+      Available for Opportunities
     </div>
-    <div class="skills-grid">
-      ${skills.map(s=>`<div class="skill-tag">${s}</div>`).join("")||"<p style='color:var(--text-muted)'>Upload documents to auto-populate</p>"}
+    
+    ${avatarEl}
+    
+    <h1 class="text-5xl sm:text-7xl font-bold tracking-tight leading-tight mb-6">
+      Hi, I'm <span class="gradient-text">${p?.name || "a Professional"}</span>
+    </h1>
+    <p class="text-xl sm:text-2xl text-slate-300 font-medium mb-8 max-w-2xl mx-auto">
+      ${p?.title || "Building digital experiences and AI solutions."}
+    </p>
+    <div class="flex flex-wrap justify-center gap-3 text-sm text-slate-400 mb-12">
+      <span class="px-3 py-1 rounded-full glass-card">Developer</span>
+      <span class="px-3 py-1 rounded-full glass-card">Engineer</span>
+      <span class="px-3 py-1 rounded-full glass-card">Problem Solver</span>
+      ${p?.location ? `<span class="px-3 py-1 rounded-full glass-card flex items-center gap-1">📍 ${p.location}</span>` : ''}
+    </div>
+  </main>
+
+  <!-- Skills Section -->
+  <section id="skills" class="py-20 px-6 max-w-6xl mx-auto reveal">
+    <div class="mb-12">
+      <div class="text-sky-400 font-semibold text-sm tracking-wider uppercase mb-2">Expertise</div>
+      <h2 class="text-3xl sm:text-4xl font-bold">Technical Arsenal</h2>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      ${skills.map(s => `<div class="px-5 py-2.5 rounded-full glass-card text-sm font-medium hover:bg-white/5 hover:border-white/20 transition cursor-default">${s}</div>`).join("") || "<p class='text-slate-500'>No skills found.</p>"}
     </div>
   </section>
 
+  <!-- Projects -->
   ${proj.length ? `
-  <section id="projects" class="reveal">
-    <div class="section-header">
-      <h2>Selected Work</h2>
-      <p>A showcase of my recent projects</p>
+  <section id="projects" class="py-20 px-6 max-w-6xl mx-auto reveal">
+    <div class="mb-12">
+      <div class="text-violet-400 font-semibold text-sm tracking-wider uppercase mb-2">Work</div>
+      <h2 class="text-3xl sm:text-4xl font-bold">Featured Projects</h2>
     </div>
-    <div class="grid" id="project-grid">
-      ${proj.map((p2, i) => {
-        // Use the real fileUrl if available, otherwise render a clean text-only card
-        const hasImg = Boolean((p2 as any).fileUrl);
-        const techTags = (p2.entities?.tech || []).slice(0,4).map((t: string) =>
-          `<span style="display:inline-block;padding:2px 10px;background:rgba(255,255,255,0.08);border-radius:99px;font-size:0.75rem;color:#9ca3af;margin:2px;">${t}</span>`
-        ).join("");
-        return `
-      <article class="card">
-        ${hasImg ? `<div class="img-wrap"><img src="${(p2 as any).fileUrl}" alt="${p2.title}" class="card-img" loading="lazy"/></div>` : `
-        <div style="height:140px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08));border-bottom:1px solid var(--border);">
-          <span style="font-size:3rem;">💻</span>
-        </div>`}
-        <div class="card-body">
-          <span class="card-badge">${p2.year}</span>
-          <h3>${p2.title}</h3>
-          <p>${p2.summary}</p>
-          ${techTags ? `<div style="margin-top:12px;">${techTags}</div>` : ""}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      ${proj.map((p2: any) => `
+      <div class="glass-card rounded-2xl overflow-hidden border-gradient card-hover transition-all duration-300 flex flex-col group">
+        ${p2.fileUrl ? `<img src="${p2.fileUrl}" alt="${p2.title}" class="w-full h-48 object-cover border-b border-white/10 group-hover:scale-105 transition-transform duration-500"/>` : `<div class="w-full h-48 bg-gradient-to-br from-sky-500/10 to-violet-500/10 border-b border-white/10 flex items-center justify-center text-4xl">💻</div>`}
+        <div class="p-6 flex-1 flex flex-col">
+          <div class="text-xs font-mono text-slate-400 mb-3 bg-white/5 inline-block px-2 py-1 rounded w-fit">${p2.year}</div>
+          <h3 class="text-xl font-bold mb-2">${p2.title}</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6 flex-1">${p2.summary}</p>
+          <div class="flex flex-wrap gap-2 mt-auto">
+            ${(p2.entities?.tech || []).slice(0,4).map((t:string)=>`<span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded bg-white/5 text-slate-300">${t}</span>`).join("")}
+          </div>
         </div>
-      </article>`;
-      }).join("")}
+      </div>
+      `).join("")}
     </div>
   </section>` : ""}
 
+  <!-- Experience -->
   ${intern.length ? `
-  <section id="experience" class="reveal">
-    <div class="section-header">
-      <h2>Experience</h2>
-      <p>My professional journey and roles</p>
+  <section id="experience" class="py-20 px-6 max-w-6xl mx-auto reveal">
+    <div class="mb-12">
+      <div class="text-emerald-400 font-semibold text-sm tracking-wider uppercase mb-2">Experience</div>
+      <h2 class="text-3xl sm:text-4xl font-bold">Professional Journey</h2>
     </div>
-    <div class="grid" id="exp-grid">
-      ${intern.map(p2=>`
-      <article class="card" style="padding: 32px">
-        <span class="card-badge">${p2.year}</span>
-        <h3>${p2.title}</h3>
-        <p>${p2.summary}</p>
-      </article>`).join("")}
-    </div>
-  </section>` : ""}
-
-  ${acad.length ? `
-  <section id="education" class="reveal">
-    <div class="section-header">
-      <h2>Education & Academics</h2>
-      <p>My academic background and research</p>
-    </div>
-    <div class="grid" id="acad-grid">
-      ${acad.map(p2=>`
-      <article class="card" style="padding: 32px">
-        <span class="card-badge">${p2.year}</span>
-        <h3>${p2.title}</h3>
-        <p>${p2.summary}</p>
-      </article>`).join("")}
-    </div>
-  </section>` : ""}
-
-  ${cert.length ? `
-  <section id="certifications" class="reveal">
-    <div class="section-header">
-      <h2>Certifications</h2>
-      <p>Verified professional credentials</p>
-    </div>
-    <div class="grid" id="cert-grid">
-      ${cert.map(c=>`
-      <article class="card">
-        <div class="card-body" style="padding: 40px 32px">
-          <div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px;">🏅</div>
-          <span class="card-badge">${c.year}</span>
-          <h3>${c.title}</h3>
-          <p>${c.summary}</p>
+    <div class="space-y-6">
+      ${intern.map((p2: any) => `
+      <div class="glass-card rounded-2xl p-6 sm:p-8 border-gradient card-hover transition-all">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-bold">${p2.title}</h3>
+            <div class="text-primary font-medium text-sm mt-1">${p2.entities?.orgs?.[0] || "Organization"}</div>
+          </div>
+          <div class="text-sm font-mono bg-white/5 px-3 py-1 rounded-full w-fit">${p2.year}</div>
         </div>
-      </article>`).join("")}
+        <p class="text-slate-400 text-sm leading-relaxed">${p2.summary}</p>
+      </div>
+      `).join("")}
     </div>
   </section>` : ""}
 
-  ${ach.length ? `
-  <section id="achievements" class="reveal">
-    <div class="section-header">
-      <h2>Achievements</h2>
-      <p>Awards, hackathons, and recognitions</p>
-    </div>
-    <div class="grid" id="ach-grid">
-      ${ach.map(p2=>`
-      <article class="card" style="padding: 32px">
-        <div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px;">🏆</div>
-        <span class="card-badge">${p2.year}</span>
-        <h3>${p2.title}</h3>
-        <p>${p2.summary}</p>
-      </article>`).join("")}
+  <!-- Education & Certifications -->
+  ${(acad.length || cert.length || ach.length) ? `
+  <section class="py-20 px-6 max-w-6xl mx-auto reveal">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+      ${acad.length ? `
+      <div>
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><span class="text-sky-400">🎓</span> Education</h2>
+        <div class="space-y-4">
+          ${acad.map((p2: any) => `
+          <div class="glass-card p-5 rounded-xl border-l-4 border-l-sky-400 border-t border-r border-b border-white/5 card-hover transition-all">
+            <h4 class="font-bold">${p2.title}</h4>
+            <div class="text-xs text-slate-400 mt-2">${p2.year} • ${p2.entities?.orgs?.[0] || "Institution"}</div>
+          </div>
+          `).join("")}
+        </div>
+      </div>` : ""}
+      
+      ${cert.length || ach.length ? `
+      <div>
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><span class="text-pink-400">🏆</span> Awards & Certs</h2>
+        <div class="space-y-4">
+          ${[...cert, ...ach].slice(0, 5).map((c: any) => `
+          <div class="glass-card p-5 rounded-xl border-l-4 border-l-pink-400 border-t border-r border-b border-white/5 card-hover transition-all">
+            <h4 class="font-bold">${c.title}</h4>
+            <div class="text-xs text-slate-400 mt-2">${c.year}</div>
+          </div>
+          `).join("")}
+        </div>
+      </div>` : ""}
     </div>
   </section>` : ""}
 
-  <footer>
-    <p>&copy; ${new Date().getFullYear()} ${p?.name||"Portfolio"}. Auto-generated via MemoryVerse AI.</p>
+  <!-- Footer -->
+  <footer class="py-10 text-center border-t border-white/10 mt-20 reveal">
+    <p class="text-slate-500 text-sm">&copy; ${new Date().getFullYear()} ${p?.name || "Portfolio"}. Auto-generated via MemoryVerse AI.</p>
   </footer>
 
   <script>
-    const reveals = document.querySelectorAll('.reveal');
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -308,23 +271,11 @@ export async function buildPortfolioHTML(userId = "local") {
         }
       });
     }, { threshold: 0.1 });
-    reveals.forEach(r => observer.observe(r));
-
-    const handleGlow = (e, gridId) => {
-      const grid = document.getElementById(gridId);
-      if(!grid) return;
-      for(const card of grid.querySelectorAll('.card')) {
-        const rect = card.getBoundingClientRect(),
-              x = e.clientX - rect.left,
-              y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', \`\${x}px\`);
-        card.style.setProperty('--mouse-y', \`\${y}px\`);
-      }
-    };
-    window.addEventListener('mousemove', e => { handleGlow(e, 'project-grid'); handleGlow(e, 'cert-grid'); });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
 </body>
 </html>`;
+
 }
 
 export async function getInsights(userId = "local") {

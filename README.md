@@ -54,7 +54,7 @@ npm run dev
 │         └──────────────────▼──────────────────┘            │
 │                    lib/analyze.ts                          │
 │              ┌──────────────────────────┐                  │
-│              │  Cohere 1.5 Flash (LLM)  │                  │
+│              │  Cohere command-r-08-2024 (LLM)  │                  │
 │              │  → title, category (8)   │                  │
 │              │  → 2-sentence summary    │                  │
 │              │  → skills, orgs, dates   │                  │
@@ -62,8 +62,8 @@ npm run dev
 │              └────────────┬─────────────┘                  │
 │                           │ (parallel)                     │
 │              ┌────────────▼─────────────┐                  │
-│              │  text-embedding-004      │                  │
-│              │  → float[768] vectors    │ ← REAL AI       │
+│              │  embed-english-v3.0      │                  │
+│              │  → float[1024] vectors    │ ← REAL AI       │
 │              └────────────┬─────────────┘                  │
 └───────────────────────────┼────────────────────────────────┘
                             │
@@ -103,8 +103,8 @@ npm run dev
 User question: "What are my strongest AI skills?"
           │
           ▼
-  embed(question)          ← text-embedding-004 API
-  → queryVec[768]
+  embed(question)          ← embed-english-v3.0 API
+  → queryVec[1024]
           │
           ▼
   for each stored doc:
@@ -123,7 +123,7 @@ User question: "What are my strongest AI skills?"
    Summary: ..."
           │
           ▼
-  Cohere 1.5 Flash:
+  Cohere command-r-08-2024:
   "Answer using ONLY retrieved docs.
    Cite document titles."
           │
@@ -243,7 +243,7 @@ memoryverse-ai/
 │   ├── firebaseAdmin.ts          Server Admin SDK (Firestore, Storage, FCM, token verify)
 │   ├── hybridStore.ts            Smart store: Firestore primary, local file fallback
 │   ├── store.ts                  Local file-based store (data/store.json)
-│   ├── Cohere.ts                 Real Cohere API (text-embedding-004 + 1.5-flash)
+│   ├── Cohere.ts                 Real Cohere API (embed-english-v3.0 + command-r-08-2024)
 │   ├── vector.ts                 Cosine similarity vector search
 │   ├── extract.ts                PDF (pdf-parse) + DOCX (mammoth) + TXT extraction
 │   ├── analyze.ts                AI document analysis pipeline
@@ -281,7 +281,7 @@ memoryverse-ai/
    Cohere_API_KEY=AIza...
 ```
 
-Powers: document analysis, 768-dim embeddings, RAG answers, resume/portfolio generation.
+Powers: document analysis, 1024-dim embeddings, RAG answers, resume/portfolio generation.
 
 ---
 
@@ -381,7 +381,7 @@ STEP D — Enable Services
 | Criteria | Weight | Implementation |
 |----------|--------|----------------|
 | AI organization / categorization / retrieval | **40%** | Cohere categorizes into 8 types, extracts skills/orgs/dates/tech, semantic retrieval with score % |
-| NLP / RAG / Embeddings / Vector DB / Semantic Search | **25%** | Real 768-dim text-embedding-004, cosine similarity, RAG pipeline, cited sources |
+| NLP / RAG / Embeddings / Vector DB / Semantic Search | **25%** | Real 1024-dim embed-english-v3.0, cosine similarity, RAG pipeline, cited sources |
 | Innovation / UX | **20%** | Mobile phone UI, knowledge graph, timeline, resume/portfolio AI builder, Firebase real-time |
 | Architecture clarity | **15%** | README + ARCHITECTURE.md + THOUGHT_PROCESS.md + inline code comments |
 

@@ -37,7 +37,19 @@ export async function analyzeDoc(rawText: string, fileName: string): Promise<Ana
     hasKey() ? cohereAnalyze(trimmed, fileName) : Promise.resolve(null),
   ]);
 
-  if (aiResult) return { ...aiResult, embedding: embedding.values, embeddingSource: embedding.source, embeddingDim: embedding.dim };
+  if (aiResult) {
+    return {
+      ...aiResult,
+      title: aiResult.title || fileName.replace(/\.[^/.]+$/, "").trim() || "Untitled",
+      cat: aiResult.cat || localCat(trimmed, fileName),
+      summary: aiResult.summary || "No summary provided.",
+      year: aiResult.year || String(new Date().getFullYear()),
+      confidence: aiResult.confidence || 65,
+      embedding: embedding.values,
+      embeddingSource: embedding.source,
+      embeddingDim: embedding.dim
+    };
+  }
 
   const entities = localExtract(trimmed);
   const cat = localCat(trimmed, fileName);

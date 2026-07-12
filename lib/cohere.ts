@@ -238,7 +238,8 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
         model: "command-r-08-2024",
         messages: [{ role: "user", content: prompt }],
         max_tokens: maxTokens,
-        temperature: 0.1
+        temperature: 0.1,
+        response_format: { type: "json_object" }
       })
     }), 20000); // 20 seconds timeout for generation
     
@@ -258,7 +259,17 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
 }
 
 export function parseJSON<T>(t: string, fb: T): T {
-  try { return JSON.parse(t.replace(/```json|```/gi, "").trim()) as T; } catch { return fb; }
+  try {
+    const clean = t.replace(/```json|```/gi, "").trim();
+    const start = clean.indexOf("{");
+    const end = clean.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      return JSON.parse(clean.substring(start, end + 1)) as T;
+    }
+    return JSON.parse(clean) as T;
+  } catch {
+    return fb;
+  }
 }
 
 // ─── 5. Local Fallback (unchanged) ──────────────────────────────────────────

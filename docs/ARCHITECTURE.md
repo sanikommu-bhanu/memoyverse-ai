@@ -31,7 +31,7 @@
 │                                                     │
 │              analyze.ts                             │
 │         ┌──────────────────────┐                   │
-│         │  gemini-flash-latest │                   │
+│         │  command-r-08-2024 │                   │
 │         │  → title             │                   │
 │         │  → category (8 types)│                   │
 │         │  → 2-sentence summary│                   │
@@ -42,8 +42,8 @@
 │         └──────────────────────┘                   │
 │                    +                               │
 │         ┌──────────────────────┐                   │
-│         │  gemini-embedding-2  │                   │
-│         │  → float[768]        │ ← Real vectors    │
+│         │  embed-english-v3.0  │                   │
+│         │  → float[1024]        │ ← Real vectors    │
 │         └──────────────────────┘                   │
 └─────────────────────────────────────────────────────┘
                            │
@@ -57,7 +57,7 @@
               │      id, title, cat,   │
               │      summary,          │
               │      entities,         │
-              │      embedding: [768]  │ ← Stored vectors
+              │      embedding: [1024]  │ ← Stored vectors
               │      rawText,          │
               │      year, confidence  │
               │    }],                 │
@@ -76,8 +76,8 @@ User: "What are my strongest AI skills?"
                     ▼
          ┌──────────────────────┐
          │   embed(question)    │
-         │  gemini-embedding-2  │
-         │  → queryVec[768]     │
+         │  embed-english-v3.0  │
+         │  → queryVec[1024]     │
          └──────────┬───────────┘
                     │
                     ▼
@@ -102,7 +102,7 @@ User: "What are my strongest AI skills?"
                     │
                     ▼
          ┌──────────────────────┐
-         │ gemini-flash-latest  │
+         │ command-r-08-2024  │
          │                      │
          │  "Answer using ONLY  │
          │  retrieved docs.     │
@@ -117,7 +117,7 @@ User: "What are my strongest AI skills?"
 
 ```
 Local fallback (no API key):  128-dim  (VOCAB hash, fast, offline)
-gemini-embedding-2 (Gemini):  768-dim  (real semantic vectors)
+embed-english-v3.0 (Cohere):  1024-dim  (real semantic vectors)
 text-embedding-ada-002:       1536-dim (OpenAI, paid)
 ```
 
@@ -157,8 +157,8 @@ User clicks "Connect GitHub"
 |-------|-----------|---------|
 | Framework | Next.js 14 App Router | Full-stack React |
 | Styling | Tailwind CSS + custom CSS | Mobile-first design system |
-| LLM | `gemini-flash-latest` | Analysis, RAG, resume, portfolio |
-| Embeddings | `gemini-embedding-2` | 768-dim semantic vectors |
+| LLM | `command-r-08-2024` | Analysis, RAG, resume, portfolio |
+| Embeddings | `embed-english-v3.0` | 1024-dim semantic vectors |
 | Vector Math | TypeScript (`lib/vector.ts`) | Cosine similarity |
 | PDF Parsing | `pdf-parse` | Text extraction |
 | DOCX Parsing | `mammoth` | Word doc extraction |
