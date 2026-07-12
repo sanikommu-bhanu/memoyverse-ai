@@ -28,7 +28,7 @@ export async function semanticSearch(
 function kwSearch(q:string,docs:MemDoc[],k:number){
   const tokens=q.toLowerCase().split(/\s+/).filter(Boolean);
   return docs.map(d=>{
-    const hay=`${d.title} ${d.summary} ${d.cat} ${d.year} ${d.entities.skills.join(" ")}`.toLowerCase();
+    const hay=`${d.title} ${d.summary} ${d.cat} ${d.year} ${(d.entities?.skills || []).join(" ")}`.toLowerCase();
     const score=tokens.reduce((a,t)=>a+(hay.includes(t)?1:0),0)/Math.max(tokens.length,1);
     return {doc:d,score};
   }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,k);

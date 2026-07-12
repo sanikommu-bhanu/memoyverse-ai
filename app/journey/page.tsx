@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 type Cat = "All"|"Certifications"|"Projects"|"Internships"|"Academics"|"Achievements";
 const FILTERS: Cat[] = ["All","Certifications","Projects","Internships","Academics","Achievements"];
@@ -12,7 +13,11 @@ export default function Journey() {
   const [docs, setDocs] = useState<any[]>([]);
   const [filter, setFilter] = useState<Cat>("All");
 
-  useEffect(() => { fetch("/api/documents").then(r=>r.json()).then(d=>setDocs(d.docs||[])); },[]);
+  useEffect(() => { 
+    getAuthHeader().then(headers => {
+      fetch("/api/documents", { headers }).then(r=>r.json()).then(d=>setDocs(d.docs||[])); 
+    });
+  },[]);
 
   const sorted = [...docs]
     .filter(d => filter==="All" || d.cat===filter)

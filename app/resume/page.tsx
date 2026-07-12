@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const TEMPLATES = [
   {k:"ATS",l:"ATS",d:"Keyword-optimized for applicant tracking systems"},
@@ -19,7 +20,8 @@ export default function Resume() {
   const generate = async () => {
     setLoading(true); setResume("");
     try {
-      const r = await fetch("/api/resume",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({template:tmpl})});
+      const headers: any = { "Content-Type": "application/json", ...(await getAuthHeader()) };
+      const r = await fetch("/api/resume",{method:"POST",headers,body:JSON.stringify({template:tmpl})});
       const d = await r.json();
       setResume(d.resume||"");
     } finally { setLoading(false); }

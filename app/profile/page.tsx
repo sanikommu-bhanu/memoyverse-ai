@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const COVER = "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=900&q=80";
 const AVATAR = "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&q=80";
@@ -25,14 +26,16 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   useEffect(()=>{
-    fetch("/api/profile").then(r=>r.json()).then(d=>{
-      if(d.profile){setProfile(d.profile);setForm(d.profile);}
-      else {
-        const auth = localStorage.getItem("mv_auth");
-        if(auth){const a=JSON.parse(auth);setForm(f=>({...f,...a}));}
-      }
+    getAuthHeader().then(headers => {
+      fetch("/api/profile", { headers }).then(r=>r.json()).then(d=>{
+        if(d.profile){setProfile(d.profile);setForm(d.profile);}
+        else {
+          const auth = localStorage.getItem("mv_auth");
+          if(auth){const a=JSON.parse(auth);setForm(f=>({...f,...a}));}
+        }
+      });
+      fetch("/api/documents", { headers }).then(r=>r.json()).then(d=>setDocs(d.docs||[]));
     });
-    fetch("/api/documents").then(r=>r.json()).then(d=>setDocs(d.docs||[]));
   },[]);
 
   const skills = [...new Set(docs.flatMap((d:any)=>d.entities?.skills||[]))];
@@ -44,7 +47,8 @@ export default function Profile() {
 
   const save = async () => {
     setSaving(true);
-    await fetch("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});
+    const headers: any = { "Content-Type": "application/json", ...(await getAuthHeader()) };
+    await fetch("/api/profile",{method:"POST",headers,body:JSON.stringify(form)});
     setProfile(form); setSaving(false); setEditing(false);
     localStorage.setItem("mv_auth",JSON.stringify({name:form.name,email:form.email}));
   };

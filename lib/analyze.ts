@@ -71,7 +71,14 @@ File name: ${fileName}
 Document text:
 """${text}"""`, 900);
     const p = parseJSON<any>(raw, null);
-    if (p?.entities) return p;
+    if (p) {
+      if (!p.entities) p.entities = {};
+      p.entities.skills = Array.isArray(p.entities.skills) ? p.entities.skills : [];
+      p.entities.orgs = Array.isArray(p.entities.orgs) ? p.entities.orgs : [];
+      p.entities.dates = Array.isArray(p.entities.dates) ? p.entities.dates : [];
+      p.entities.tech = Array.isArray(p.entities.tech) ? p.entities.tech : [];
+      return p;
+    }
     return null;
   } catch { return null; }
 }

@@ -68,3 +68,10 @@ export const appleProvider = () => {
   p.addScope("name");
   return p;
 };
+
+export const getAuthHeader = async () => {
+  if (!isFirebaseConfigured()) return {};
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser) return {};
+  return { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` };
+};

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const SECTIONS = ["About Me","Projects","Skills","Certifications","Experience","Contact"];
 const PROJ_IMGS = ["1555066931-4365d14bab8c","1517694712202-14dd9538aa97","1607799279861-4dd421887fb3"];
@@ -14,9 +15,11 @@ export default function Portfolio() {
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(()=>{
-    fetch("/api/profile").then(r=>r.json()).then(d=>setProfile(d.profile));
-    fetch("/api/documents").then(r=>r.json()).then(d=>{
-      setProjects((d.docs||[]).filter((x:any)=>x.cat==="Projects").slice(0,3));
+    getAuthHeader().then(headers => {
+      fetch("/api/profile", { headers }).then(r=>r.json()).then(d=>setProfile(d.profile));
+      fetch("/api/documents", { headers }).then(r=>r.json()).then(d=>{
+        setProjects((d.docs||[]).filter((x:any)=>x.cat==="Projects").slice(0,3));
+      });
     });
   },[]);
 
@@ -38,7 +41,11 @@ export default function Portfolio() {
           <h1 style={{fontSize:18,fontWeight:700,color:"#111",margin:0}}>AI Portfolio Generator</h1>
           <p style={{fontSize:12,color:"#9A9A9E",margin:0}}>Build your portfolio in minutes</p>
         </div>
-        {ready && <button onClick={()=>window.open("/api/portfolio","_blank")} style={{marginLeft:"auto",background:"#F5F5F7",border:"1px solid #EAEAEA",borderRadius:12,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",color:"#111"}}>Preview →</button>}
+        {ready && <button onClick={async()=>{
+          const h = await getAuthHeader();
+          const token = h.Authorization ? h.Authorization.split(" ")[1] : "";
+          window.open(`/api/portfolio${token ? `?token=${token}` : ""}`,"_blank");
+        }} style={{marginLeft:"auto",background:"#F5F5F7",border:"1px solid #EAEAEA",borderRadius:12,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",color:"#111"}}>Preview →</button>}
       </div>
 
       <div style={{padding:"20px"}}>
@@ -103,9 +110,13 @@ export default function Portfolio() {
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>window.open("/api/portfolio","_blank")} className="btn btn-primary" style={{flex:1,height:48,fontSize:13}}>Preview →</button>
               <button onClick={async()=>{
-                const html=await fetch("/api/portfolio").then(r=>r.text());
+                const h = await getAuthHeader();
+                const token = h.Authorization ? h.Authorization.split(" ")[1] : "";
+                window.open(`/api/portfolio${token ? `?token=${token}` : ""}`,"_blank");
+              }} className="btn btn-primary" style={{flex:1,height:48,fontSize:13}}>Preview →</button>
+              <button onClick={async()=>{
+                const html=await fetch("/api/portfolio", { headers: await getAuthHeader() }).then(r=>r.text());
                 const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download="portfolio.html"; a.click();
               }} className="btn btn-secondary" style={{flex:1,height:48,fontSize:13}}>Download HTML</button>
             </div>

@@ -60,6 +60,7 @@ export default function Auth() {
         }
         router.replace("/home");
       } catch (e: any) {
+        console.error("Firebase Email Auth Error:", e);
         setErr(e.message?.replace("Firebase: ","").replace(/\(auth\/[^)]+\)/,"").trim() || "Authentication failed");
       }
     } else {
@@ -89,6 +90,7 @@ export default function Auth() {
         saveLocal(n, u.email||"", u.uid);
         router.replace("/home");
       } catch (e: any) {
+        console.error("Firebase Social Auth Error:", e);
         setErr(e.code === "auth/popup-closed-by-user" ? "Sign-in cancelled." : e.message?.replace("Firebase: ","").replace(/\(auth\/[^)]+\)/,"").trim() || "Social auth failed");
       }
     } else {

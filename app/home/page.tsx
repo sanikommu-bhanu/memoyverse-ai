@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
+import { getFirebaseAuth, isFirebaseConfigured, getAuthHeader } from "@/lib/firebase";
 
 const HERO = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=900&q=80";
 const AVATAR = "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&q=80";
@@ -43,12 +43,6 @@ export default function Home() {
   const greet = hour<12?"Good Morning":hour<18?"Good Afternoon":"Good Evening";
   const name = user?.name?.split(" ")[0] || "there";
 
-  const getAuthHeader = async () => {
-    if (!isFirebaseConfigured()) return {};
-    const auth = getFirebaseAuth();
-    if (!auth?.currentUser) return {};
-    return { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` };
-  };
 
   useEffect(() => {
     const auth = localStorage.getItem("mv_auth");

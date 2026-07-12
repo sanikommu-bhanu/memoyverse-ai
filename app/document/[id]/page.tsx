@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const CAT_ICONS: Record<string,string> = {Certificate:"🏅",Project:"🚀",Internship:"💼",Skill:"⚡",Research:"🔬",Achievement:"🏆",Resume:"📄",Other:"📌"};
 
@@ -11,18 +12,21 @@ export default function DocDetail() {
   const [all, setAll] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/documents").then(r=>r.json()).then(d=>{
-      const docs = d.docs||[];
-      setAll(docs);
-      setDoc(docs.find((x:any)=>x.id===id)||null);
+    getAuthHeader().then(headers => {
+      fetch("/api/documents", { headers }).then(r=>r.json()).then(d=>{
+        const docs = d.docs||[];
+        setAll(docs);
+        setDoc(docs.find((x:any)=>x.id===id)||null);
+      });
     });
   },[id]);
 
-  const related = all.filter(d=>d.id!==id&&(d.entities?.skills?.some((s:string)=>doc?.entities?.skills?.includes(s))||d.cat===doc?.cat)).slice(0,3);
+  const related = all.filter(d=>d.id!==id&&((d.entities?.skills || []).some((s:string)=>(doc?.entities?.skills || []).includes(s))||d.cat===doc?.cat)).slice(0,3);
 
   const del = async () => {
     if(!confirm("Delete this document?")) return;
-    await fetch("/api/documents",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+    const headers: any = { "Content-Type": "application/json", ...(await getAuthHeader()) };
+    await fetch("/api/documents",{method:"DELETE",headers,body:JSON.stringify({id})});
     router.push("/home");
   };
 

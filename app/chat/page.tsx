@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { getAuthHeader } from "@/lib/firebase";
 
 const SUGGESTIONS = ["What are my strongest skills?","Summarize my career","Show my AI certificates","What skills am I missing?","Generate a cover letter","Find internship documents"];
 
@@ -25,12 +26,14 @@ export default function Chat() {
 
     // Fetch from server if online
     if (navigator.onLine) {
-      fetch("/api/chat").then(r=>r.json()).then(d=>{
-        if (d.chat) {
-          setMsgs(d.chat);
-          localStorage.setItem("mv_offline_chat", JSON.stringify(d.chat));
-        }
-      }).catch(console.error);
+      getAuthHeader().then(headers => {
+        fetch("/api/chat", { headers }).then(r=>r.json()).then(d=>{
+          if (d.chat) {
+            setMsgs(d.chat);
+            localStorage.setItem("mv_offline_chat", JSON.stringify(d.chat));
+          }
+        }).catch(console.error);
+      });
     }
 
     return () => {
@@ -64,9 +67,10 @@ export default function Chat() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
       
+      const headers: any = { "Content-Type": "application/json", ...(await getAuthHeader()) };
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({question:q}),
         signal: controller.signal
       });
@@ -86,7 +90,7 @@ export default function Chat() {
   };
 
   const clearChat = async () => { 
-    if (!isOffline) await fetch("/api/chat",{method:"DELETE"}).catch(()=>{}); 
+    if (!isOffline) await fetch("/api/chat",{method:"DELETE", headers: await getAuthHeader()}).catch(()=>{}); 
     setMsgs([]); 
     localStorage.removeItem("mv_offline_chat");
   };

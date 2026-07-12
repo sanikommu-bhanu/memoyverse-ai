@@ -78,11 +78,11 @@ export async function embed(text: string): Promise<number[]> {
   }
 }
 
-/** Generate text using gemini-flash-latest */
+/** Generate text using gemini-2.0-flash */
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
   if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
   return await withRetry(async () => {
-    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`, {
+    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

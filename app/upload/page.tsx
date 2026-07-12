@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const STEPS = ["Scanning document…","Extracting text (OCR)…","Identifying skills…","Detecting entities…","Generating embedding…","Building knowledge graph…","Finalizing…"];
 
@@ -61,7 +62,8 @@ export default function Upload() {
     }, 700);
     try {
       const fd = new FormData(); fd.append("file", file);
-      const res = await fetch("/api/upload", { method:"POST", body:fd });
+      const headers = await getAuthHeader();
+      const res = await fetch("/api/upload", { method:"POST", headers, body:fd });
       clearInterval(iv);
       if (!res.ok) { const e = await res.json(); throw new Error(e.error||"Upload failed"); }
       const { doc } = await res.json();
@@ -81,28 +83,28 @@ export default function Upload() {
     if (k==="camera") { camRef.current?.click(); return; }
     if (k==="gallery") { fileRef.current?.click(); return; }
     if (k==="github") {
-      const r = await fetch("/api/connect/github", {method:"POST"});
+      const r = await fetch("/api/connect/github", {method:"POST", headers: await getAuthHeader()});
       const d = await r.json();
       if (d.error==="GitHub not connected") router.push("/settings");
       else { alert(`✅ Imported ${d.count} GitHub repos!`); router.push("/home"); }
       return;
     }
     if (k==="drive") {
-      const r = await fetch("/api/connect/drive", {method:"POST"});
+      const r = await fetch("/api/connect/drive", {method:"POST", headers: await getAuthHeader()});
       const d = await r.json();
       if (d.error?.includes("not connected")) router.push("/settings");
       else { alert(`✅ Imported ${d.count} Drive files!`); router.push("/home"); }
       return;
     }
     if (k==="linkedin") {
-      const r = await fetch("/api/connect/linkedin", {method:"POST"});
+      const r = await fetch("/api/connect/linkedin", {method:"POST", headers: await getAuthHeader()});
       const d = await r.json();
       if (d.error?.includes("not connected")) router.push("/settings");
       else { alert(`✅ LinkedIn profile imported!`); router.push("/home"); }
       return;
     }
     if (k==="onedrive") {
-      const r = await fetch("/api/connect/onedrive", {method:"POST"});
+      const r = await fetch("/api/connect/onedrive", {method:"POST", headers: await getAuthHeader()});
       const d = await r.json();
       if (d.error?.includes("not connected")) router.push("/settings");
       else { alert(`✅ Imported ${d.count} OneDrive files!`); router.push("/home"); }

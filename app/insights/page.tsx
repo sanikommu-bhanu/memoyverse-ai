@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 function Ring({p,size=96,sw=8,color="#111"}:{p:number;size?:number;sw?:number;color?:string}){
   const r=(size-sw)/2,c=2*Math.PI*r,off=c-(c*Math.min(100,p))/100;
@@ -33,7 +34,11 @@ export default function Insights() {
   const router = useRouter();
   const [ins, setIns] = useState<any>(null);
 
-  useEffect(()=>{ fetch("/api/insights").then(r=>r.json()).then(setIns); },[]);
+  useEffect(()=>{
+    getAuthHeader().then(headers => {
+      fetch("/api/insights", { headers }).then(r=>r.json()).then(setIns);
+    });
+  },[]);
 
   if (!ins) return (
     <div style={{height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center"}}>

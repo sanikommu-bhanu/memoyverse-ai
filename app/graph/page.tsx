@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const PALETTE = ["#111","#2563EB","#7C3AED","#059669","#EA580C","#DB2777","#0891B2","#4F46E5"];
 
@@ -15,10 +16,12 @@ export default function Graph() {
 
   useEffect(() => {
     setW(Math.min(window.innerWidth, 430));
-    fetch("/api/documents").then(r=>r.json()).then(d=>{
-      const docs = d.docs || [];
-      setDocs(docs);
-      buildGraph(docs, Math.min(window.innerWidth, 430));
+    getAuthHeader().then(headers => {
+      fetch("/api/documents", { headers }).then(r=>r.json()).then(d=>{
+        const docs = d.docs || [];
+        setDocs(docs);
+        buildGraph(docs, Math.min(window.innerWidth, 430));
+      });
     });
   },[]);
 

@@ -6,7 +6,7 @@ export async function ragChat(question: string, userId = "local") {
   const hits = await retrieveTop(question, 15, userId);
   const sources = hits.map(h => ({ id:h.doc.id, title:h.doc.title, score:Math.round(h.score*100) }));
   const context = hits.map(h =>
-    `[${h.doc.cat}] "${h.doc.title}" (${h.doc.year})\nSummary: ${h.doc.summary}\nSkills: ${h.doc.entities.skills.join(", ")||"n/a"}`
+    `[${h.doc.cat}] "${h.doc.title}" (${h.doc.year})\nSummary: ${h.doc.summary}\nSkills: ${(h.doc.entities?.skills || []).join(", ")||"n/a"}`
   ).join("\n\n---\n\n");
 
   if (hasKey()) {
@@ -47,7 +47,7 @@ Response (keep it concise, 2-4 sentences):`, 800);
 export async function buildResume(template: string, userId = "local") {
   const docs = await getDocs(userId);
   const p = await getProfile(userId);
-  const lines = docs.map(d=>`${d.cat}: ${d.title} (${d.year}) - ${d.summary} [${d.entities.skills.join(", ")}]`).join("\n");
+  const lines = docs.map(d=>`${d.cat}: ${d.title} (${d.year}) - ${d.summary} [${(d.entities?.skills || []).join(", ")}]`).join("\n");
   if (hasKey()) {
     try {
       const prompt = `Generate a ${template}-style professional resume in highly structured Markdown for ${p?.name||"the user"}, ${p?.title||"Professional"}.
@@ -65,13 +65,13 @@ Requirements:
       return await generate(prompt, 1800);
     } catch { /* fallback */ }
   }
-  const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,18);
+  const skills = [...new Set(docs.flatMap(d=>d.entities?.skills || []))].slice(0,18);
   const proj = docs.filter(d=>d.cat==="Projects");
   const intern = docs.filter(d=>d.cat==="Internships" || d.cat==="Resume" || d.cat==="Other");
   const cert = docs.filter(d=>d.cat==="Certifications");
   const ach = docs.filter(d=>d.cat==="Achievements");
   const acad = docs.filter(d=>d.cat==="Academics");
-  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No experience uploaded yet_"}\n\n---\n\n## EDUCATION\n${acad.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Institution"}**\n- ${d.summary}`).join("\n\n")||"_No education uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
+  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities?.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No experience uploaded yet_"}\n\n---\n\n## EDUCATION\n${acad.map(d=>`### ${d.title} (${d.year})\n**${d.entities?.orgs?.[0]||"Institution"}**\n- ${d.summary}`).join("\n\n")||"_No education uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities?.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
 }
 
 export async function buildPortfolioHTML(userId = "local") {
@@ -82,7 +82,7 @@ export async function buildPortfolioHTML(userId = "local") {
   const intern = docs.filter(d=>["Internships", "Resume", "Other"].includes(d.cat));
   const acad = docs.filter(d=>d.cat==="Academics");
   const ach = docs.filter(d=>d.cat==="Achievements");
-  const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,24);
+  const skills = [...new Set(docs.flatMap(d=>d.entities?.skills || []))].slice(0,24);
   const imgs = ["1555066931-4365d14bab8c","1517694712202-14dd9538aa97","1607799279861-4dd421887fb3","1516321318423-f06f85e504b3"];
   
   return `<!DOCTYPE html>
@@ -304,7 +304,7 @@ export async function buildPortfolioHTML(userId = "local") {
 
 export async function getInsights(userId = "local") {
   const docs = await getDocs(userId);
-  const allSkills = [...new Set(docs.flatMap(d=>d.entities.skills))];
+  const allSkills = [...new Set(docs.flatMap(d=>d.entities?.skills || []))];
   const c=docs.filter(d=>d.cat==="Certifications").length;
   const proj=docs.filter(d=>d.cat==="Projects").length;
   const int=docs.filter(d=>d.cat==="Internships").length;

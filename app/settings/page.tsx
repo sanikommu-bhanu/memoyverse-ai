@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
+import { getFirebaseAuth, isFirebaseConfigured, getAuthHeader } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 
 function SettingsContent() {
@@ -17,7 +17,9 @@ function SettingsContent() {
     setFbStatus(isFirebaseConfigured());
     const auth = localStorage.getItem("mv_auth");
     if (auth) setUser(JSON.parse(auth));
-    fetch("/api/profile").then(r=>r.json()).then(d=>setTokens(d.tokens||{}));
+    getAuthHeader().then(headers => {
+      fetch("/api/profile", { headers }).then(r=>r.json()).then(d=>setTokens(d.tokens||{}));
+    });
     const connected = sp.get("connected");
     const error = sp.get("error");
     if (connected) { setMsg(`✅ ${connected} connected successfully!`); addNotification(`${connected} Connected`, `Your ${connected} account has been linked to MemoryVerse.`); }
@@ -35,7 +37,7 @@ function SettingsContent() {
   const importFrom = async (ep: string, label: string) => {
     setMsg(""); 
     try {
-      const r = await fetch(`/api/connect/${ep}`, { method:"POST" });
+      const r = await fetch(`/api/connect/${ep}`, { method:"POST", headers: await getAuthHeader() });
       const d = await r.json();
       if (d.ok) { setMsg(`✅ Imported ${d.count||"your"} ${label} data!`); addNotification(`${label} Imported`, `${d.count||"Your"} ${label} items have been added to MemoryVerse.`); }
       else if (d.error?.includes("not connected")) router.push("/settings#accounts");
@@ -55,8 +57,8 @@ function SettingsContent() {
     setClearing(true);
     const headers: any = {};
     if (isFirebaseConfigured()) {
-      const auth = getFirebaseAuth();
-      if (auth?.currentUser) headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
+      const authHeader = await getAuthHeader();
+      Object.assign(headers, authHeader);
     }
     await fetch("/api/documents", { method:"DELETE", headers:{"Content-Type":"application/json",...headers}, body:JSON.stringify({id:"__ALL__"}) });
     await fetch("/api/chat", { method:"DELETE", headers });
@@ -141,7 +143,7 @@ function SettingsContent() {
         <div style={{background:"#fff",border:"1px solid #EAEAEA",borderRadius:20,overflow:"hidden",marginBottom:24}}>
           {[
             { l:"Notifications", e:"🔔", action:()=>router.push("/notifications") },
-            { l:"Export My Data", e:"📤", action:async()=>{ const d=await fetch("/api/documents").then(r=>r.json()); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"})); a.download="memoryverse_export.json"; a.click(); } },
+            { l:"Export My Data", e:"📤", action:async()=>{ const d=await fetch("/api/documents", { headers: await getAuthHeader() }).then(r=>r.json()); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"})); a.download="memoryverse_export.json"; a.click(); } },
             { l:"Privacy Policy", e:"🔒", action:()=>{} },
           ].map((r,i,arr)=>(
             <div key={r.l} onClick={r.action} style={{display:"flex",alignItems:"center",gap:14,padding:"15px 18px",borderBottom:i<arr.length-1?"1px solid #F5F5F7":"none",cursor:"pointer"}}>

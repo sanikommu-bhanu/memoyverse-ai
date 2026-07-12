@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { getAuthHeader } from "@/lib/firebase";
 
 const CATS = ["All","Certifications","Projects","Internships","Academics","Achievements","Resume","Skills"];
 const ICONS: Record<string,string> = {Certifications:"🏅",Projects:"🚀",Internships:"💼",Academics:"🔬",Achievements:"🏆",Resume:"📄",Skills:"⚡",Other:"📌"};
@@ -18,7 +19,8 @@ function SearchContent() {
     const p = new URLSearchParams();
     if(query) p.set("q",query);
     if(category!=="All") p.set("cat",category);
-    const d = await fetch(`/api/search?${p}`).then(r=>r.json());
+    const headers = await getAuthHeader();
+    const d = await fetch(`/api/search?${p}`, { headers }).then(r=>r.json());
     setResults(d.results||[]);
     setLoading(false);
   },[]);
