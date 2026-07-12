@@ -3,7 +3,7 @@ import { generate, hasKey } from "./gemini";
 import { getDocs, getProfile, getChat } from "./hybridStore";
 
 export async function ragChat(question: string, userId = "local") {
-  const hits = await retrieveTop(question, 6, userId);
+  const hits = await retrieveTop(question, 15, userId);
   const sources = hits.map(h => ({ id:h.doc.id, title:h.doc.title, score:Math.round(h.score*100) }));
   const context = hits.map(h =>
     `[${h.doc.cat}] "${h.doc.title}" (${h.doc.year})\nSummary: ${h.doc.summary}\nSkills: ${h.doc.entities.skills.join(", ")||"n/a"}`
@@ -67,10 +67,11 @@ Requirements:
   }
   const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,18);
   const proj = docs.filter(d=>d.cat==="Projects");
-  const intern = docs.filter(d=>d.cat==="Internships");
+  const intern = docs.filter(d=>d.cat==="Internships" || d.cat==="Resume" || d.cat==="Other");
   const cert = docs.filter(d=>d.cat==="Certifications");
   const ach = docs.filter(d=>d.cat==="Achievements");
-  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No internships uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
+  const acad = docs.filter(d=>d.cat==="Academics");
+  return `# ${p?.name||"Your Name"}\n**${p?.title||"Professional"}** | ${p?.email||""} | ${p?.location||""}\n\n---\n\n## SUMMARY\n${p?.title||"Professional"} with expertise in ${skills.slice(0,4).join(", ")||"various domains"}, verified across ${docs.length} document(s).\n\n---\n\n## SKILLS\n${skills.map(s=>`- ${s}`).join("\n")||"Upload documents to auto-populate"}\n\n---\n\n## PROJECTS\n${proj.map(d=>`### ${d.title} (${d.year})\n- ${d.summary}`).join("\n\n")||"_No projects uploaded yet_"}\n\n---\n\n## EXPERIENCE\n${intern.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Organization"}**\n- ${d.summary}`).join("\n\n")||"_No experience uploaded yet_"}\n\n---\n\n## EDUCATION\n${acad.map(d=>`### ${d.title} (${d.year})\n**${d.entities.orgs?.[0]||"Institution"}**\n- ${d.summary}`).join("\n\n")||"_No education uploaded yet_"}\n\n---\n\n## CERTIFICATIONS\n${cert.map(d=>`- **${d.title}** (${d.year}) - ${d.entities.orgs?.[0]||""}`).join("\n")||"_No certificates yet_"}\n\n---\n\n## ACHIEVEMENTS\n${ach.map(d=>`- ${d.title} (${d.year})`).join("\n")||"_No achievements yet_"}`;
 }
 
 export async function buildPortfolioHTML(userId = "local") {
@@ -78,7 +79,9 @@ export async function buildPortfolioHTML(userId = "local") {
   const p = await getProfile(userId);
   const proj = docs.filter(d=>d.cat==="Projects");
   const cert = docs.filter(d=>d.cat==="Certifications");
-  const intern = docs.filter(d=>d.cat==="Internships");
+  const intern = docs.filter(d=>["Internships", "Resume", "Other"].includes(d.cat));
+  const acad = docs.filter(d=>d.cat==="Academics");
+  const ach = docs.filter(d=>d.cat==="Achievements");
   const skills = [...new Set(docs.flatMap(d=>d.entities.skills))].slice(0,24);
   const imgs = ["1555066931-4365d14bab8c","1517694712202-14dd9538aa97","1607799279861-4dd421887fb3","1516321318423-f06f85e504b3"];
   
@@ -152,7 +155,10 @@ export async function buildPortfolioHTML(userId = "local") {
       <li><a href="#about">About</a></li>
       <li><a href="#skills">Expertise</a></li>
       ${proj.length ? '<li><a href="#projects">Work</a></li>' : ''}
+      ${intern.length ? '<li><a href="#experience">Experience</a></li>' : ''}
+      ${acad.length ? '<li><a href="#education">Education</a></li>' : ''}
       ${cert.length ? '<li><a href="#certifications">Certifications</a></li>' : ''}
+      ${ach.length ? '<li><a href="#achievements">Achievements</a></li>' : ''}
     </ul>
   </nav>
 
@@ -195,6 +201,38 @@ export async function buildPortfolioHTML(userId = "local") {
     </div>
   </section>` : ""}
 
+  ${intern.length ? `
+  <section id="experience" class="reveal">
+    <div class="section-header">
+      <h2>Experience</h2>
+      <p>My professional journey and roles</p>
+    </div>
+    <div class="grid" id="exp-grid">
+      ${intern.map(p2=>`
+      <article class="card" style="padding: 32px">
+        <span class="card-badge">${p2.year}</span>
+        <h3>${p2.title}</h3>
+        <p>${p2.summary}</p>
+      </article>`).join("")}
+    </div>
+  </section>` : ""}
+
+  ${acad.length ? `
+  <section id="education" class="reveal">
+    <div class="section-header">
+      <h2>Education & Academics</h2>
+      <p>My academic background and research</p>
+    </div>
+    <div class="grid" id="acad-grid">
+      ${acad.map(p2=>`
+      <article class="card" style="padding: 32px">
+        <span class="card-badge">${p2.year}</span>
+        <h3>${p2.title}</h3>
+        <p>${p2.summary}</p>
+      </article>`).join("")}
+    </div>
+  </section>` : ""}
+
   ${cert.length ? `
   <section id="certifications" class="reveal">
     <div class="section-header">
@@ -210,6 +248,23 @@ export async function buildPortfolioHTML(userId = "local") {
           <h3>${c.title}</h3>
           <p>${c.summary}</p>
         </div>
+      </article>`).join("")}
+    </div>
+  </section>` : ""}
+
+  ${ach.length ? `
+  <section id="achievements" class="reveal">
+    <div class="section-header">
+      <h2>Achievements</h2>
+      <p>Awards, hackathons, and recognitions</p>
+    </div>
+    <div class="grid" id="ach-grid">
+      ${ach.map(p2=>`
+      <article class="card" style="padding: 32px">
+        <div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px;">🏆</div>
+        <span class="card-badge">${p2.year}</span>
+        <h3>${p2.title}</h3>
+        <p>${p2.summary}</p>
       </article>`).join("")}
     </div>
   </section>` : ""}

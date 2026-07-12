@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { cookies } from "next/headers";
 import { Store, MemDoc, ChatMsg, Profile, OAuthTokens } from "./types";
 
 const DIR = path.join(os.tmpdir(), "memoryverse_data");
@@ -33,8 +34,23 @@ export const db = {
   clearChat() { const s = read(); s.chat = []; write(s); },
   getProfile: (): Profile | null => read().profile,
   setProfile(p: Profile) { const s = read(); s.profile = p; write(s); },
-  getTokens: (): OAuthTokens => read().tokens || {},
+  getTokens: (): OAuthTokens => {
+    try {
+      const c = cookies();
+      return {
+        github: c.get("github_token")?.value,
+        google: c.get("google_token")?.value,
+        linkedin: c.get("linkedin_token")?.value,
+        microsoft: c.get("microsoft_token")?.value,
+      };
+    } catch {
+      return read().tokens || {};
+    }
+  },
   setToken(provider: keyof OAuthTokens, token: string) {
+    try {
+      cookies().set(`${provider}_token`, token, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
+    } catch {}
     const s = read();
     s.tokens = s.tokens || {};
     s.tokens[provider] = token;

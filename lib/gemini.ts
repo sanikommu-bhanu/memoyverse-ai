@@ -1,18 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
-
 // ─── 1. Client Initialization ───────────────────────────────────────────────
-// We no longer validate based on "AIza..." prefix. Any valid key format works.
 const KEY = process.env.GEMINI_API_KEY || "";
 export const hasKey = () => Boolean(KEY && KEY.trim().length > 0);
-
-let aiClient: GoogleGenAI | null = null;
-function getAI() {
-  if (!aiClient && hasKey()) {
-    // Official SDK initialization
-    aiClient = new GoogleGenAI({ apiKey: KEY });
-  }
-  return aiClient;
-}
 
 // ─── 2. Retry Logic & Error Handling ────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -72,13 +60,17 @@ export async function embed(text: string): Promise<number[]> {
   if (!hasKey()) return localEmbed(text);
   try {
     return await withRetry(async () => {
-      const ai = getAI();
-      if (!ai) throw new Error("No AI client");
-      const res = await withTimeout(ai.models.embedContent({
-        model: "text-embedding-004",
-        contents: text.slice(0, 8000),
+      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "models/text-embedding-004",
+          content: { parts: [{ text: text.slice(0, 8000) }] }
+        })
       }), 8000);
-      return res.embeddings?.[0]?.values || localEmbed(text);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      return data.embedding?.values || localEmbed(text);
     });
   } catch (e: any) {
     console.warn(`[AI Fallback] Embedding failed: ${e?.message}`);
@@ -90,17 +82,21 @@ export async function embed(text: string): Promise<number[]> {
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
   if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
   return await withRetry(async () => {
-    const ai = getAI();
-    if (!ai) throw new Error("No AI client");
-    const res = await withTimeout(ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: prompt,
-      config: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.1,
-      }
+    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.1 }
+      })
     }), 12000);
-    const text = res.text;
+    const data = await res.json();
+    if (data.error) {
+      const e = new Error(data.error.message);
+      (e as any).status = data.error.code;
+      throw e;
+    }
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Empty response from AI");
     return text.trim();
   });

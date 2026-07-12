@@ -38,7 +38,22 @@ export const OAUTH = {
 };
 
 export function getRedirectUri(provider: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  let base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base && process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL) {
+    base = `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (!base && process.env.NEXT_PUBLIC_VERCEL_URL) {
+    base = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+  if (!base && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    base = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (!base && process.env.VERCEL_URL) {
+    base = `https://${process.env.VERCEL_URL}`;
+  }
+  if (!base) {
+    base = "http://localhost:3000";
+  }
   return `${base}/api/auth/${provider}/callback`;
 }
 
