@@ -23,7 +23,7 @@ export async function getDocs(userId = ANON): Promise<MemDoc[]> {
       const snap = await db.collection("users").doc(userId).collection("docs")
         .orderBy("uploadedAt", "desc").limit(200).get();
       return snap.docs.map(d => d.data() as MemDoc);
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   return localDB.getDocs();
 }
@@ -34,7 +34,7 @@ export async function getDoc(id: string, userId = ANON): Promise<MemDoc | undefi
     try {
       const snap = await db.collection("users").doc(userId).collection("docs").doc(id).get();
       return snap.exists ? (snap.data() as MemDoc) : undefined;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   return localDB.getDoc(id);
 }
@@ -45,7 +45,7 @@ export async function addDoc(doc: MemDoc, userId = ANON): Promise<void> {
     try {
       await db.collection("users").doc(userId).collection("docs").doc(doc.id).set(doc);
       return;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.addDoc(doc);
 }
@@ -56,7 +56,7 @@ export async function delDoc(id: string, userId = ANON): Promise<void> {
     try {
       await db.collection("users").doc(userId).collection("docs").doc(id).delete();
       return;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.delDoc(id);
 }
@@ -69,7 +69,7 @@ export async function getChat(userId = ANON): Promise<ChatMsg[]> {
       const snap = await db.collection("users").doc(userId).collection("chat")
         .orderBy("at", "asc").limit(200).get();
       return snap.docs.map(d => d.data() as ChatMsg);
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   return localDB.getChat();
 }
@@ -80,7 +80,7 @@ export async function addChat(msg: ChatMsg, userId = ANON): Promise<void> {
     try {
       await db.collection("users").doc(userId).collection("chat").doc(msg.id).set(msg);
       return;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.addChat(msg);
 }
@@ -94,7 +94,7 @@ export async function clearChat(userId = ANON): Promise<void> {
       snap.docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
       return;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.clearChat();
 }
@@ -107,7 +107,7 @@ export async function getProfile(userId = ANON): Promise<Profile | null> {
       const snap = await db.collection("users").doc(userId).get();
       const data = snap.data();
       return data?.profile ?? null;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   return localDB.getProfile();
 }
@@ -118,7 +118,7 @@ export async function setProfile(profile: Profile, userId = ANON): Promise<void>
     try {
       await db.collection("users").doc(userId).set({ profile }, { merge: true });
       return;
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.setProfile(profile);
 }
@@ -141,7 +141,7 @@ export async function wipeAll(userId = ANON): Promise<void> {
       chatSnap.docs.forEach(d => batch.delete(d.ref));
       batch.delete(db.collection("users").doc(userId));
       await batch.commit();
-    } catch { /* fall through */ }
+    } catch (e: any) { console.error("[Firestore] Operation failed:", e?.message || e); }
   }
   localDB.wipe();
 }

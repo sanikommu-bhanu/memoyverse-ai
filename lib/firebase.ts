@@ -1,8 +1,5 @@
-// Client-side Firebase SDK
-// Used for: Authentication (Google, Apple, Email), real-time listeners
-
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, onAuthStateChanged } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging, isSupported } from "firebase/messaging";
@@ -69,9 +66,35 @@ export const appleProvider = () => {
   return p;
 };
 
-export const getAuthHeader = async () => {
+// ── Auth-ready promise ────────────────────────────────────────────────────────
+// Firebase restores session state asynchronously. Calling auth.currentUser
+// synchronously on page load returns null even when a session exists.
+// We resolve this promise once onAuthStateChanged fires for the first time,
+// then every subsequent getAuthHeader() call is instant (promise is cached).
+let authReady: Promise<import("firebase/auth").User | null> | null = null;
+
+function waitForAuth() {
+  if (!authReady) {
+    authReady = new Promise((resolve) => {
+      const auth = getFirebaseAuth();
+      if (!auth) return resolve(null);
+      const unsub = onAuthStateChanged(auth, (user) => {
+        unsub(); // unsubscribe after first event — we only need the initial state
+        resolve(user);
+      });
+    });
+  }
+  return authReady;
+}
+
+export const getAuthHeader = async (): Promise<Record<string, string>> => {
   if (!isFirebaseConfigured()) return {};
-  const auth = getFirebaseAuth();
-  if (!auth?.currentUser) return {};
-  return { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` };
+  const user = await waitForAuth();
+  if (!user) return {};
+  try {
+    const token = await user.getIdToken();
+    return { Authorization: `Bearer ${token}` };
+  } catch {
+    return {};
+  }
 };

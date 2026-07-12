@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   experimental: {
-    serverComponentsExternalPackages: ["pdf-parse","mammoth","firebase-admin","tesseract.js"],
+    serverComponentsExternalPackages: [
+      "pdf-parse", "mammoth", "firebase-admin", "tesseract.js",
+      "sharp", "canvas", "pdfjs-dist", "puppeteer-core", "@sparticuz/chromium",
+    ],
   },
   images: {
     remotePatterns: [

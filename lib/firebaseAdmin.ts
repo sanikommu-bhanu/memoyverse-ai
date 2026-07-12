@@ -74,7 +74,8 @@ export async function verifyToken(authHeader: string | null): Promise<string | n
   try {
     const decoded = await auth.verifyIdToken(token);
     return decoded.uid;
-  } catch {
+  } catch (e: any) {
+    console.warn("[verifyToken] failed:", e?.message ?? e);
     return null;
   }
 }

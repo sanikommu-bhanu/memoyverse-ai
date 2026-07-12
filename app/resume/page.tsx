@@ -28,10 +28,31 @@ export default function Resume() {
   };
 
   const copy = () => { navigator.clipboard.writeText(resume); setCopied(true); setTimeout(()=>setCopied(false),2000); };
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([resume],{type:"text/plain"}));
-    a.download = `resume_${tmpl.toLowerCase()}.md`; a.click();
+  const [downloading, setDownloading] = useState(false);
+  const download = async () => {
+    setDownloading(true);
+    try {
+      const headers: any = { "Content-Type": "application/json", ...(await getAuthHeader()) };
+      const res = await fetch("/api/resume/pdf", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ template: tmpl, content: resume }),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `resume_${tmpl.toLowerCase()}.pdf`;
+      a.click();
+    } catch (e: any) {
+      // Fallback to markdown download
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([resume], { type: "text/plain" }));
+      a.download = `resume_${tmpl.toLowerCase()}.md`;
+      a.click();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -82,8 +103,8 @@ export default function Resume() {
                 <button onClick={copy} style={{background:"#F5F5F7",border:"1px solid #EAEAEA",borderRadius:12,padding:"7px 14px",fontSize:12,fontWeight:500,cursor:"pointer",color:"#111"}}>
                   {copied?"✓ Copied":"Copy"}
                 </button>
-                <button onClick={download} style={{background:"#111",color:"#fff",border:"none",borderRadius:12,padding:"7px 14px",fontSize:12,fontWeight:500,cursor:"pointer"}}>
-                  Download
+                <button onClick={download} disabled={downloading} style={{background:"#111",color:"#fff",border:"none",borderRadius:12,padding:"7px 14px",fontSize:12,fontWeight:500,cursor:"pointer",opacity:downloading?0.7:1}}>
+                  {downloading ? "Generating…" : "Download PDF"}
                 </button>
               </div>
             </div>

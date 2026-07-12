@@ -1,6 +1,7 @@
 // ─── 1. Client Initialization ───────────────────────────────────────────────
 const KEY = process.env.GEMINI_API_KEY || "";
 export const hasKey = () => Boolean(KEY && KEY.trim().length > 0);
+import { isOllamaAvailable, ollamaEmbed, ollamaGenerate } from "./ollama";
 
 const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.0-flash";
 const GEMINI_EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || "text-embedding-004";
@@ -96,9 +97,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-/** Real 768-dim Gemini embedding via gemini-embedding-2 */
+/** Real 768-dim Gemini embedding. Falls back to Ollama → local on failure. */
 export async function embed(text: string): Promise<{values: number[], source: "gemini" | "local", dim: number}> {
+  // No Gemini key — try Ollama first, then local vocab fallback
   if (!hasKey()) {
+    try {
+      if (await isOllamaAvailable()) {
+        const vals = await ollamaEmbed(text);
+        console.log(`[Embed] Served by Ollama (${vals.length}-dim)`);
+        return { values: vals, source: "local", dim: vals.length };
+      }
+    } catch (e: any) {
+      console.warn("[Embed] Ollama failed:", e.message);
+    }
     const vals = localEmbed(text);
     return { values: vals, source: "local", dim: vals.length };
   }
@@ -115,20 +126,43 @@ export async function embed(text: string): Promise<{values: number[], source: "g
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
       const vals = data.embedding?.values;
-      if (vals && vals.length > 0) return { values: vals, source: "gemini", dim: vals.length };
+      if (vals && vals.length > 0) {
+        console.log(`[Embed] Served by Gemini (${vals.length}-dim)`);
+        return { values: vals, source: "gemini", dim: vals.length };
+      }
       const localVals = localEmbed(text);
       return { values: localVals, source: "local", dim: localVals.length };
     });
   } catch (e: any) {
-    console.warn(`[AI Fallback] Embedding failed: ${e?.message}`);
+    console.warn(`[Embed] Gemini failed: ${e?.message} — trying Ollama…`);
+    try {
+      if (await isOllamaAvailable()) {
+        const vals = await ollamaEmbed(text);
+        console.log(`[Embed] Served by Ollama fallback (${vals.length}-dim)`);
+        return { values: vals, source: "local", dim: vals.length };
+      }
+    } catch (oe: any) {
+      console.warn("[Embed] Ollama fallback also failed:", oe.message);
+    }
     const vals = localEmbed(text);
     return { values: vals, source: "local", dim: vals.length };
   }
 }
 
-/** Generate text using gemini-2.0-flash */
+/** Generate text using Gemini. Falls back to Ollama if key is absent. */
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
-  if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
+  if (!hasKey()) {
+    // Try Ollama before giving up
+    try {
+      if (await isOllamaAvailable()) {
+        console.log("[Generate] Served by Ollama (no Gemini key)");
+        return ollamaGenerate(prompt, maxTokens);
+      }
+    } catch (e: any) {
+      console.warn("[Generate] Ollama failed:", e.message);
+    }
+    throw new Error("API key not valid. Please pass a valid API key.");
+  }
   return await withRetry(async () => {
     const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent`, {
       method: "POST",
@@ -146,6 +180,7 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
     }
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Empty response from AI");
+    console.log("[Generate] Served by Gemini");
     return text.trim();
   });
 }

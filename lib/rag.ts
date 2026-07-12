@@ -83,8 +83,13 @@ export async function buildPortfolioHTML(userId = "local") {
   const acad = docs.filter(d=>d.cat==="Academics");
   const ach = docs.filter(d=>d.cat==="Achievements");
   const skills = [...new Set(docs.flatMap(d=>d.entities?.skills || []))].slice(0,24);
-  const imgs = ["1555066931-4365d14bab8c","1517694712202-14dd9538aa97","1607799279861-4dd421887fb3","1516321318423-f06f85e504b3"];
-  
+
+  // Build a deterministic initials-based SVG avatar if no real photo exists
+  const initials = (p?.name || "U").split(" ").map((w: string) => w[0]).slice(0,2).join("").toUpperCase();
+  const avatarEl = p?.avatar
+    ? `<img src="${p.avatar}" alt="${p?.name}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.15);margin-bottom:24px;animation:fadeUp 1s ease 0.2s backwards;"/>`
+    : `<div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;color:#fff;margin:0 auto 24px;animation:fadeUp 1s ease 0.2s backwards;">${initials}</div>`; 
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,7 +114,9 @@ export async function buildPortfolioHTML(userId = "local") {
     .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 24px; position: relative; }
     .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 24px; backdrop-filter: blur(10px); animation: fadeUp 1s ease 0.1s backwards; }
     .hero h1 { font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 24px; background: linear-gradient(to right, #fff, #9ca3af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeUp 1s ease 0.3s backwards; }
-    .hero p { font-size: clamp(1.1rem, 2vw, 1.3rem); color: var(--text-muted); max-width: 600px; animation: fadeUp 1s ease 0.5s backwards; }
+    .hero-subtitle { font-size: clamp(1.1rem, 2vw, 1.3rem); color: var(--text-muted); max-width: 600px; animation: fadeUp 1s ease 0.5s backwards; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--text-muted); width: fit-content; margin: 0 auto; animation: typing 2.5s steps(40,end) 0.8s both, blink 0.75s step-end 0.8s 4; }
+    @keyframes typing { from { width: 0; } to { width: 100%; } }
+    @keyframes blink { from,to { border-color: transparent; } 50% { border-color: var(--text-muted); } }
 
     section { max-width: 1080px; margin: 0 auto; padding: 120px 24px; }
     .section-header { margin-bottom: 64px; }
@@ -136,8 +143,14 @@ export async function buildPortfolioHTML(userId = "local") {
     footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
     @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
+    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.9s cubic-bezier(0.5, 0, 0, 1); }
     .reveal.active { opacity: 1; transform: translateY(0); }
+    .reveal:nth-child(1) { transition-delay: 0s; }
+    .reveal:nth-child(2) { transition-delay: 0.15s; }
+    .reveal:nth-child(3) { transition-delay: 0.3s; }
+    .reveal:nth-child(4) { transition-delay: 0.45s; }
+    .reveal:nth-child(5) { transition-delay: 0.6s; }
+    .reveal:nth-child(6) { transition-delay: 0.75s; }
 
     @media (max-width: 768px) { nav ul { display: none; } section { padding: 80px 24px; } }
   </style>
@@ -167,8 +180,9 @@ export async function buildPortfolioHTML(userId = "local") {
       <span style="width:8px;height:8px;background:#10b981;border-radius:50%;box-shadow:0 0 10px #10b981;"></span>
       Available for Opportunities
     </div>
+    ${avatarEl}
     <h1>${p?.name||"Creative Developer"}</h1>
-    <p>${p?.title||"Building digital experiences and AI solutions."}</p>
+    <p class="hero-subtitle">${p?.title||"Building digital experiences and AI solutions."}</p>
     ${p?.location ? `<p style="margin-top:16px;font-size:0.95rem;color:rgba(255,255,255,0.4)">📍 ${p.location}</p>` : ''}
   </header>
 
@@ -189,15 +203,26 @@ export async function buildPortfolioHTML(userId = "local") {
       <p>A showcase of my recent projects</p>
     </div>
     <div class="grid" id="project-grid">
-      ${proj.map((p2,i)=>`
+      ${proj.map((p2, i) => {
+        // Use the real fileUrl if available, otherwise render a clean text-only card
+        const hasImg = Boolean((p2 as any).fileUrl);
+        const techTags = (p2.entities?.tech || []).slice(0,4).map((t: string) =>
+          `<span style="display:inline-block;padding:2px 10px;background:rgba(255,255,255,0.08);border-radius:99px;font-size:0.75rem;color:#9ca3af;margin:2px;">${t}</span>`
+        ).join("");
+        return `
       <article class="card">
-        <div class="img-wrap"><img src="https://images.unsplash.com/photo-${imgs[i%imgs.length]}?w=800&q=80" alt="${p2.title}" class="card-img" loading="lazy"/></div>
+        ${hasImg ? `<div class="img-wrap"><img src="${(p2 as any).fileUrl}" alt="${p2.title}" class="card-img" loading="lazy"/></div>` : `
+        <div style="height:140px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08));border-bottom:1px solid var(--border);">
+          <span style="font-size:3rem;">💻</span>
+        </div>`}
         <div class="card-body">
           <span class="card-badge">${p2.year}</span>
           <h3>${p2.title}</h3>
           <p>${p2.summary}</p>
+          ${techTags ? `<div style="margin-top:12px;">${techTags}</div>` : ""}
         </div>
-      </article>`).join("")}
+      </article>`;
+      }).join("")}
     </div>
   </section>` : ""}
 

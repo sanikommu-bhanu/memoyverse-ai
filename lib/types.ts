@@ -40,6 +40,7 @@ export interface Profile {
   location: string;
   bio: string;
   avatar?: string;
+  fcmToken?: string;
 }
 
 export interface OAuthTokens {
