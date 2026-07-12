@@ -10,6 +10,7 @@ function SettingsContent() {
   const [tokens, setTokens] = useState<any>({});
   const [msg, setMsg] = useState("");
   const [clearing, setClearing] = useState(false);
+  const [reembedding, setReembedding] = useState(false);
   const [fbStatus, setFbStatus] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -63,6 +64,26 @@ function SettingsContent() {
     await fetch("/api/documents", { method:"DELETE", headers:{"Content-Type":"application/json",...headers}, body:JSON.stringify({id:"__ALL__"}) });
     await fetch("/api/chat", { method:"DELETE", headers });
     setClearing(false); setMsg("✅ All data cleared."); router.push("/home");
+  };
+
+  const reembedDocs = async () => {
+    setReembedding(true);
+    setMsg("🔄 Re-embedding documents...");
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch("/api/reembed", { method: "POST", headers });
+      const data = await res.json();
+      if (data.ok) {
+        setMsg(`✅ ${data.message}`);
+        addNotification("Re-embedding Complete", data.message);
+      } else {
+        setMsg(`❌ Error: ${data.error}`);
+      }
+    } catch (e: any) {
+      setMsg(`❌ Re-embedding failed: ${e.message}`);
+    } finally {
+      setReembedding(false);
+    }
   };
 
   const PROVIDERS = [
@@ -144,6 +165,7 @@ function SettingsContent() {
           {[
             { l:"Notifications", e:"🔔", action:()=>router.push("/notifications") },
             { l:"Export My Data", e:"📤", action:async()=>{ const d=await fetch("/api/documents", { headers: await getAuthHeader() }).then(r=>r.json()); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"})); a.download="memoryverse_export.json"; a.click(); } },
+            { l:reembedding?"Re-embedding...":"Re-embed documents", e:"🔄", action:reembedDocs },
             { l:"Privacy Policy", e:"🔒", action:()=>{} },
           ].map((r,i,arr)=>(
             <div key={r.l} onClick={r.action} style={{display:"flex",alignItems:"center",gap:14,padding:"15px 18px",borderBottom:i<arr.length-1?"1px solid #F5F5F7":"none",cursor:"pointer"}}>

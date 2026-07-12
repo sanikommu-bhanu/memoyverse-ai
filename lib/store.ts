@@ -27,7 +27,13 @@ function write(s: Store) {
 export const db = {
   getDocs: (): MemDoc[] => read().docs,
   getDoc: (id: string) => read().docs.find(d => d.id === id),
-  addDoc(doc: MemDoc) { const s = read(); s.docs.unshift(doc); write(s); },
+  addDoc(doc: MemDoc) {
+    const s = read();
+    const idx = s.docs.findIndex(d => d.id === doc.id);
+    if (idx !== -1) s.docs[idx] = doc;
+    else s.docs.unshift(doc);
+    write(s);
+  },
   delDoc(id: string) { const s = read(); s.docs = s.docs.filter(d => d.id !== id); write(s); },
   getChat: (): ChatMsg[] => read().chat,
   addChat(m: ChatMsg) { const s = read(); s.chat.push(m); write(s); },
