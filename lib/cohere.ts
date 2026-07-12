@@ -34,7 +34,7 @@ if (typeof process !== "undefined" && !process.env.__COHERE_DIAGNOSTICS_RUN) {
           "Accept": "application/json"
         },
         body: JSON.stringify({
-          model: "command-r",
+          model: "command-r-08-2024",
           messages: [{ role: "user", content: "Hi" }],
           max_tokens: 1
         })
@@ -176,7 +176,7 @@ export async function embed(text: string, isQuery = false): Promise<{values: num
           "Accept": "application/json"
         },
         body: JSON.stringify({
-          model: "embed-v4.0",
+          model: "embed-english-v3.0",
           texts: [text.slice(0, 8000)],
           input_type: isQuery ? "search_query" : "search_document",
           embedding_types: ["float"]
@@ -235,7 +235,7 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
         "Accept": "application/json"
       },
       body: JSON.stringify({
-        model: "command-r",
+        model: "command-r-08-2024",
         messages: [{ role: "user", content: prompt }],
         max_tokens: maxTokens,
         temperature: 0.1
