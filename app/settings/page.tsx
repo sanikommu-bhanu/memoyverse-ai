@@ -124,8 +124,8 @@ function SettingsContent() {
         <div style={{background:"#fff",border:"1px solid #EAEAEA",borderRadius:20,overflow:"hidden",marginBottom:24}}>
           {[
             { l:"Firebase Auth", v: fbStatus?"Connected":"Not configured", ok:fbStatus, icon:"🔐" },
-            { l:"Gemini API", v:process.env.NEXT_PUBLIC_GEMINI_STATUS||"Check .env", ok:true, icon:"✦" },
-            { l:"Embedding Model", v:"text-embedding-004 (768-dim)", ok:true, icon:"🧠" },
+            { l:"Cohere API", v:process.env.NEXT_PUBLIC_COHERE_STATUS||"Check .env", ok:true, icon:"✦" },
+            { l:"Embedding Model", v:"embed-v4.0 (1024-dim)", ok:true, icon:"🧠" },
             { l:"Vector Search", v:"Cosine Similarity", ok:true, icon:"🔍" },
             { l:"Storage", v: fbStatus?"Firebase Storage":"Local /tmp", ok:true, icon:"💾" },
           ].map((r,i,arr)=>(
@@ -193,7 +193,7 @@ function SettingsContent() {
 
         <div style={{textAlign:"center",paddingBottom:4}}>
           <p style={{fontSize:11,color:"#9A9A9E",margin:0}}>MemoryVerse AI v2.0 · Wooble Hackathon '26</p>
-          <p style={{fontSize:10,color:"#C5C5C7",margin:"4px 0 0"}}>Gemini · text-embedding-004 · Cosine Vector Search · RAG · Firebase</p>
+          <p style={{fontSize:10,color:"#C5C5C7",margin:"4px 0 0"}}>Cohere · embed-v4.0 · Cosine Vector Search · RAG · Firebase</p>
         </div>
       </div>
     </div>

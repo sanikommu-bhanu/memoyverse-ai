@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocs, addDoc } from "@/lib/hybridStore";
-import { embed, hasKey } from "@/lib/gemini";
+import { embed, hasKey } from "@/lib/cohere";
 import { verifyToken } from "@/lib/firebaseAdmin";
 
 export async function POST(req: NextRequest) {
   try {
     const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
     if (!hasKey()) {
-      return NextResponse.json({ error: "No Gemini API key configured. Cannot re-embed." }, { status: 400 });
+      return NextResponse.json({ error: "No Cohere API key configured. Cannot re-embed." }, { status: 400 });
     }
 
     const docs = await getDocs(uid);
-    const localDocs = docs.filter(d => d.embeddingSource !== "gemini");
+    const localDocs = docs.filter(d => d.embeddingSource !== "cohere");
 
     if (localDocs.length === 0) {
-      return NextResponse.json({ ok: true, message: "All documents are already embedded with Gemini." });
+      return NextResponse.json({ ok: true, message: "All documents are already embedded with Cohere." });
     }
 
     let successCount = 0;
     for (const doc of localDocs) {
       try {
-        const result = await embed(doc.rawText);
-        if (result.source === "gemini") {
+        const result = await embed(doc.rawText, false); // isQuery = false for docs
+        if (result.source === "cohere") {
           const updatedDoc = {
             ...doc,
             embedding: result.values,

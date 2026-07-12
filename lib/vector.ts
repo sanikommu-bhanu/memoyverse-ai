@@ -1,5 +1,5 @@
 import { MemDoc } from "./types";
-import { embed } from "./gemini";
+import { embed } from "./cohere";
 import { getDocs } from "./hybridStore";
 
 export function cosine(av: number[], bv: number[], aSource?: string, bSource?: string): number {
@@ -28,7 +28,7 @@ export async function semanticSearchWithMeta(
 ): Promise<{results:{doc:MemDoc;score:number}[]; skippedMismatch:number}> {
   const docs = await getDocs(userId);
   if (!docs.length) return { results: [], skippedMismatch: 0 };
-  const { values: qv, source: qSource } = await embed(query);
+  const { values: qv, source: qSource } = await embed(query, true); // isQuery = true
   const pool = cat && cat!=="All" ? docs.filter(d=>d.cat===cat) : docs;
   let skippedMismatch = 0;
   const scored = pool

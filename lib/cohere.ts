@@ -1,16 +1,13 @@
 // ─── 1. Client Initialization ───────────────────────────────────────────────
-const KEY = process.env.GEMINI_API_KEY || "";
+const KEY = process.env.COHERE_API_KEY || "";
 export const hasKey = () => Boolean(KEY && KEY.trim().length > 0);
 import { isOllamaAvailable, ollamaEmbed, ollamaGenerate } from "./ollama";
 
-const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.0-flash";
-const GEMINI_EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || "text-embedding-004";
-
 // Startup Diagnostics
-if (typeof process !== "undefined" && !process.env.__GEMINI_DIAGNOSTICS_RUN) {
-  process.env.__GEMINI_DIAGNOSTICS_RUN = "1";
+if (typeof process !== "undefined" && !process.env.__COHERE_DIAGNOSTICS_RUN) {
+  process.env.__COHERE_DIAGNOSTICS_RUN = "1";
   const missing = [
-    !KEY && "GEMINI_API_KEY",
+    !KEY && "COHERE_API_KEY",
     !process.env.FIREBASE_ADMIN_PROJECT_ID && "FIREBASE_ADMIN_*",
     !process.env.GITHUB_CLIENT_ID && "GITHUB_*",
     !process.env.GOOGLE_CLIENT_ID && "GOOGLE_*",
@@ -22,40 +19,94 @@ if (typeof process !== "undefined" && !process.env.__GEMINI_DIAGNOSTICS_RUN) {
   }
 
   // Diagnostic check
-  const checkGeminiKey = async () => {
+  const checkCohereKey = async () => {
     if (!hasKey()) {
-      console.warn("[Gemini Diagnostic] No key provided.");
+      console.warn("[Cohere Diagnostic] No key provided.");
       return;
     }
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models`, {
-        headers: { "x-goog-api-key": KEY }
+      // 1-token chat request to test the key
+      const res = await fetch("https://api.cohere.com/v2/chat", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${KEY}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          model: "command-r",
+          messages: [{ role: "user", content: "Hi" }],
+          max_tokens: 1
+        })
       });
       const data = await res.json();
       if (!res.ok) {
-        console.error(`[Gemini Diagnostic] Key rejected! Status: ${res.status}. Error:`, data?.error?.message || data);
+        console.error(`[Cohere Diagnostic] Key rejected! Status: ${res.status}. Error:`, data?.message || data);
       } else {
-        console.log(`[Gemini Diagnostic] Key is valid. Access to ${data.models?.length || 0} models confirmed.`);
+        console.log(`[Cohere Diagnostic] Key is valid. Access to Cohere APIs confirmed.`);
       }
     } catch (e: any) {
-      console.error("[Gemini Diagnostic] Network error checking key:", e.message);
+      console.error("[Cohere Diagnostic] Network error checking key:", e.message);
     }
   };
-  checkGeminiKey();
+  checkCohereKey();
 }
 
-// ─── 2. Retry Logic & Error Handling ────────────────────────────────────────
+// ─── 2. Rate Limiting & Queueing ────────────────────────────────────────────
+// Cohere trial keys: Embed = 5 calls/min (1 every 12s), Chat = 20 calls/min (1 every 3s)
+class ThrottleQueue {
+  private queue: (() => void)[] = [];
+  private isRunning = false;
+  private intervalMs: number;
+  private lastCallTime = 0;
+
+  constructor(intervalMs: number) {
+    this.intervalMs = intervalMs;
+  }
+
+  async enqueue(): Promise<void> {
+    return new Promise((resolve) => {
+      this.queue.push(resolve);
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+
+    while (this.queue.length > 0) {
+      const now = Date.now();
+      const timeSinceLast = now - this.lastCallTime;
+      if (timeSinceLast < this.intervalMs) {
+        await new Promise(r => setTimeout(r, this.intervalMs - timeSinceLast));
+      }
+
+      this.lastCallTime = Date.now();
+      const resolve = this.queue.shift();
+      if (resolve) resolve();
+    }
+
+    this.isRunning = false;
+  }
+}
+
+// 12000ms = 5 per minute max. 3000ms = 20 per minute max.
+const embedQueue = new ThrottleQueue(12000);
+const chatQueue = new ThrottleQueue(3000);
+
+// ─── 3. Retry Logic & Error Handling ────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 function formatError(e: any): never {
   const msg = e?.message || String(e);
-  if (msg.includes("API key not valid") || msg.includes("400") || msg.includes("404") || msg.includes("NOT_FOUND")) {
+  if (msg.includes("invalid api token") || msg.includes("401") || msg.includes("403")) {
     throw new Error("Invalid API key");
   }
   if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) {
     throw new Error("Rate limit exceeded");
   }
-  if (msg.includes("503") || msg.includes("500") || msg.includes("Unavailable")) {
+  if (msg.includes("503") || msg.includes("500") || msg.includes("Unavailable") || msg.includes("504")) {
     throw new Error("Service unavailable. The AI service is currently down.");
   }
   if (e?.name === "TimeoutError" || msg.includes("timeout")) {
@@ -72,8 +123,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
     } catch (e: any) {
       lastError = e;
       const msg = e?.message || "";
-      // Don't retry on 400/404 Invalid Key or Timeouts
-      if (e?.name === "TimeoutError" || msg.includes("API key not valid") || msg.includes("400") || msg.includes("404") || msg.includes("NOT_FOUND")) {
+      // Don't retry on 401/403 Invalid Key or Timeouts
+      if (e?.name === "TimeoutError" || msg.includes("invalid api token") || msg.includes("401") || msg.includes("403")) {
         break;
       }
       // Exponential backoff for 429 and 500s
@@ -83,8 +134,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
   }
   return formatError(lastError);
 }
-
-// ─── 3. Operations ──────────────────────────────────────────────────────────
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -97,9 +146,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-/** Real 768-dim Gemini embedding. Falls back to Ollama → local on failure. */
-export async function embed(text: string): Promise<{values: number[], source: "gemini" | "local", dim: number}> {
-  // No Gemini key — try Ollama first, then local vocab fallback
+// ─── 4. Operations ──────────────────────────────────────────────────────────
+
+/** Real 1024-dim Cohere embedding via embed-v4.0. Falls back to Ollama → local on failure. */
+export async function embed(text: string, isQuery = false): Promise<{values: number[], source: "cohere" | "local", dim: number}> {
   if (!hasKey()) {
     try {
       if (await isOllamaAvailable()) {
@@ -113,28 +163,39 @@ export async function embed(text: string): Promise<{values: number[], source: "g
     const vals = localEmbed(text);
     return { values: vals, source: "local", dim: vals.length };
   }
+  
   try {
     return await withRetry(async () => {
-      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBED_MODEL}:embedContent`, {
+      await embedQueue.enqueue(); // Respect 5/min limit
+      
+      const res = await withTimeout(fetch("https://api.cohere.com/v1/embed", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+        headers: {
+          "Authorization": `Bearer ${KEY}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({
-          model: `models/${GEMINI_EMBED_MODEL}`,
-          content: { parts: [{ text: text.slice(0, 8000) }] }
+          model: "embed-v4.0",
+          texts: [text.slice(0, 8000)],
+          input_type: isQuery ? "search_query" : "search_document",
+          embedding_types: ["float"]
         })
-      }), 8000);
+      }), 12000);
+      
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const vals = data.embedding?.values;
+      if (!res.ok) throw new Error(data.message || "Failed to embed with Cohere");
+      
+      const vals = data.embeddings?.float?.[0];
       if (vals && vals.length > 0) {
-        console.log(`[Embed] Served by Gemini (${vals.length}-dim)`);
-        return { values: vals, source: "gemini", dim: vals.length };
+        console.log(`[Embed] Served by Cohere (${vals.length}-dim)`);
+        return { values: vals, source: "cohere", dim: vals.length };
       }
       const localVals = localEmbed(text);
       return { values: localVals, source: "local", dim: localVals.length };
     });
   } catch (e: any) {
-    console.warn(`[Embed] Gemini failed: ${e?.message} — trying Ollama…`);
+    console.warn(`[Embed] Cohere failed: ${e?.message} — trying Ollama…`);
     try {
       if (await isOllamaAvailable()) {
         const vals = await ollamaEmbed(text);
@@ -149,13 +210,12 @@ export async function embed(text: string): Promise<{values: number[], source: "g
   }
 }
 
-/** Generate text using Gemini. Falls back to Ollama if key is absent. */
+/** Generate text using Cohere command-r. Falls back to Ollama if key is absent. */
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
   if (!hasKey()) {
-    // Try Ollama before giving up
     try {
       if (await isOllamaAvailable()) {
-        console.log("[Generate] Served by Ollama (no Gemini key)");
+        console.log("[Generate] Served by Ollama (no Cohere key)");
         return ollamaGenerate(prompt, maxTokens);
       }
     } catch (e: any) {
@@ -163,24 +223,36 @@ export async function generate(prompt: string, maxTokens = 800): Promise<string>
     }
     throw new Error("API key not valid. Please pass a valid API key.");
   }
+  
   return await withRetry(async () => {
-    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent`, {
+    await chatQueue.enqueue(); // Respect 20/min limit
+    
+    const res = await withTimeout(fetch("https://api.cohere.com/v2/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+      headers: {
+        "Authorization": `Bearer ${KEY}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.1 }
+        model: "command-r",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: maxTokens,
+        temperature: 0.1
       })
-    }), 12000);
+    }), 20000); // 20 seconds timeout for generation
+    
     const data = await res.json();
-    if (data.error) {
-      const e = new Error(data.error.message);
-      (e as any).status = data.error.code;
+    if (!res.ok) {
+      const e = new Error(data.message || "Failed to generate text with Cohere");
+      (e as any).status = res.status;
       throw e;
     }
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    const text = data.message?.content?.[0]?.text;
     if (!text) throw new Error("Empty response from AI");
-    console.log("[Generate] Served by Gemini");
+    
+    console.log("[Generate] Served by Cohere");
     return text.trim();
   });
 }
@@ -189,7 +261,7 @@ export function parseJSON<T>(t: string, fb: T): T {
   try { return JSON.parse(t.replace(/```json|```/gi, "").trim()) as T; } catch { return fb; }
 }
 
-// ─── 4. Local Fallback (unchanged) ──────────────────────────────────────────
+// ─── 5. Local Fallback (unchanged) ──────────────────────────────────────────
 const VOCAB = [
   "python","javascript","typescript","react","node","java","c++","tensorflow","pytorch",
   "machine learning","deep learning","computer vision","nlp","sql","mongodb","firebase",

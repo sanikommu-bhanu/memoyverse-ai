@@ -19,7 +19,7 @@ export interface MemDoc {
   year: string;
   confidence: number;
   embedding: number[];
-  embeddingSource?: "gemini" | "local";
+  embeddingSource?: "cohere" | "local";
   embeddingDim?: number;
   uploadedAt: string;
   source?: string; // "github" | "drive" | "linkedin" | "onedrive" | "upload"

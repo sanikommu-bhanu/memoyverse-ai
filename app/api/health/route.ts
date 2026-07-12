@@ -1,33 +1,36 @@
 import { NextResponse } from "next/server";
 
-const KEY = process.env.GEMINI_API_KEY || "";
+const KEY = process.env.COHERE_API_KEY || "";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // ── Gemini health check ──────────────────────────────────────────────────────
-  let gemini: "ok" | "key_invalid" | "rate_limited" | "not_configured" | "network_error" = "not_configured";
-  let detail = "GEMINI_API_KEY is not set";
+  // ── Cohere health check ──────────────────────────────────────────────────────
+  let cohere: "ok" | "key_invalid" | "rate_limited" | "not_configured" | "network_error" = "not_configured";
+  let detail = "COHERE_API_KEY is not set";
 
   if (KEY.trim()) {
     try {
-      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
-        headers: { "x-goog-api-key": KEY },
+      const res = await fetch("https://api.cohere.com/v1/models", {
+        headers: { 
+          "Authorization": `Bearer ${KEY}`,
+          "Accept": "application/json"
+        },
         signal: AbortSignal.timeout(6000),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        gemini = "ok";
+        cohere = "ok";
         detail = `Key valid — ${data.models?.length ?? "?"} models accessible`;
       } else if (res.status === 429) {
-        gemini = "rate_limited";
-        detail = data?.error?.message ?? "Quota exceeded (free tier per-minute limit)";
+        cohere = "rate_limited";
+        detail = data?.message ?? "Quota exceeded (trial key limit)";
       } else {
-        gemini = "key_invalid";
-        detail = data?.error?.message ?? `HTTP ${res.status}`;
+        cohere = "key_invalid";
+        detail = data?.message ?? `HTTP ${res.status}`;
       }
     } catch (e: any) {
-      gemini = "network_error" as any;
+      cohere = "network_error" as any;
       detail = e?.message ?? "fetch failed";
     }
   }
@@ -55,15 +58,14 @@ export async function GET() {
   ].filter(Boolean);
 
   return NextResponse.json({
-    gemini,
+    cohere,
     detail,
     firebaseAdmin,
     ollama,
     missingOptional,
-    tips: gemini !== "ok" ? [
-      "Check https://console.cloud.google.com → APIs & Services → Enabled APIs → 'Generative Language API'",
-      "Ensure the API key belongs to the correct Google Cloud project",
-      "Free tier: 60 requests/min per project. Burst uploads may trigger rate limits",
+    tips: cohere !== "ok" ? [
+      "Check dashboard.cohere.com → API Keys (Trial keys are free)",
+      "Trial limits: 5 embed calls/min, 20 chat calls/min",
       "If ollama=ok, embed() and generate() will fall back to Ollama automatically",
     ] : [],
   });

@@ -2,7 +2,7 @@
 
 > **"I never have to search through folders again."**
 
-An AI-powered Digital Identity System that transforms scattered documents into a structured, searchable, intelligent knowledge repository — with real Firebase Auth, Firestore, Cloud Storage, and Gemini AI.
+An AI-powered Digital Identity System that transforms scattered documents into a structured, searchable, intelligent knowledge repository — with real Firebase Auth, Firestore, Cloud Storage, and Cohere AI.
 
 ---
 
@@ -13,7 +13,7 @@ git clone <your-repo>
 cd memoryverse-ai
 npm install
 cp .env.example .env
-# Add your GEMINI_API_KEY (free) — see Setup Guide below
+# Add your Cohere_API_KEY (free) — see Setup Guide below
 npm run dev
 # → http://localhost:3000
 ```
@@ -48,13 +48,13 @@ npm run dev
 │  ┌─────────────┐    ┌──────────────┐   ┌─────────────┐    │
 │  │ PDF→text    │    │ embedQuery() │   │ retrieveTop │    │
 │  │ DOCX→text   │    │ cosine()     │   │ inject ctx  │    │
-│  │ TXT→text    │    │ topK sort    │   │ Gemini ans  │    │
+│  │ TXT→text    │    │ topK sort    │   │ Cohere ans  │    │
 │  └──────┬──────┘    └──────┬───────┘   └──────┬──────┘    │
 │         │                  │                  │            │
 │         └──────────────────▼──────────────────┘            │
 │                    lib/analyze.ts                          │
 │              ┌──────────────────────────┐                  │
-│              │  Gemini 1.5 Flash (LLM)  │                  │
+│              │  Cohere 1.5 Flash (LLM)  │                  │
 │              │  → title, category (8)   │                  │
 │              │  → 2-sentence summary    │                  │
 │              │  → skills, orgs, dates   │                  │
@@ -123,7 +123,7 @@ User question: "What are my strongest AI skills?"
    Summary: ..."
           │
           ▼
-  Gemini 1.5 Flash:
+  Cohere 1.5 Flash:
   "Answer using ONLY retrieved docs.
    Cite document titles."
           │
@@ -243,7 +243,7 @@ memoryverse-ai/
 │   ├── firebaseAdmin.ts          Server Admin SDK (Firestore, Storage, FCM, token verify)
 │   ├── hybridStore.ts            Smart store: Firestore primary, local file fallback
 │   ├── store.ts                  Local file-based store (data/store.json)
-│   ├── gemini.ts                 Real Gemini API (text-embedding-004 + 1.5-flash)
+│   ├── Cohere.ts                 Real Cohere API (text-embedding-004 + 1.5-flash)
 │   ├── vector.ts                 Cosine similarity vector search
 │   ├── extract.ts                PDF (pdf-parse) + DOCX (mammoth) + TXT extraction
 │   ├── analyze.ts                AI document analysis pipeline
@@ -272,13 +272,13 @@ memoryverse-ai/
 
 ## 🔑 API Keys Setup Guide
 
-### 1. Gemini API — REQUIRED (Free)
+### 1. Cohere API — REQUIRED (Free)
 
 ```
 1. Go to: https://aistudio.google.com/app/apikey
 2. Click "Create API Key"
 3. Add to .env:
-   GEMINI_API_KEY=AIza...
+   Cohere_API_KEY=AIza...
 ```
 
 Powers: document analysis, 768-dim embeddings, RAG answers, resume/portfolio generation.
@@ -380,7 +380,7 @@ STEP D — Enable Services
 
 | Criteria | Weight | Implementation |
 |----------|--------|----------------|
-| AI organization / categorization / retrieval | **40%** | Gemini categorizes into 8 types, extracts skills/orgs/dates/tech, semantic retrieval with score % |
+| AI organization / categorization / retrieval | **40%** | Cohere categorizes into 8 types, extracts skills/orgs/dates/tech, semantic retrieval with score % |
 | NLP / RAG / Embeddings / Vector DB / Semantic Search | **25%** | Real 768-dim text-embedding-004, cosine similarity, RAG pipeline, cited sources |
 | Innovation / UX | **20%** | Mobile phone UI, knowledge graph, timeline, resume/portfolio AI builder, Firebase real-time |
 | Architecture clarity | **15%** | README + ARCHITECTURE.md + THOUGHT_PROCESS.md + inline code comments |

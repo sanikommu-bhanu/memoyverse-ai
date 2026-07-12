@@ -1,10 +1,10 @@
 import { DocCat, Entities } from "./types";
-import { generate, embed, hasKey, parseJSON } from "./gemini";
+import { generate, embed, hasKey, parseJSON } from "./cohere";
 
 export interface Analysis {
   title: string; cat: DocCat; summary: string;
   entities: Entities; year: string; confidence: number; embedding: number[];
-  embeddingSource?: "gemini" | "local"; embeddingDim?: number;
+  embeddingSource?: "cohere" | "local"; embeddingDim?: number;
 }
 
 const SKILLS = ["Python","JavaScript","TypeScript","React","React Native","Node.js","Java","C++","C#","Go","Rust","TensorFlow","PyTorch","Keras","Scikit-learn","Machine Learning","Deep Learning","Computer Vision","NLP","LLM","SQL","PostgreSQL","MongoDB","Redis","Firebase","AWS","Azure","GCP","Docker","Kubernetes","Git","GitHub","Figma","Photoshop","Illustrator","Data Structures","Algorithms","OpenCV","Flask","Django","FastAPI","Express","Next.js","Vue.js","Angular","HTML","CSS","Tailwind","REST API","GraphQL","Linux","Cloud Computing","Pandas","NumPy","Matplotlib","Jupyter","Spark","Hadoop","Blockchain","Swift","Kotlin","Flutter","Unity","R","MATLAB","Excel","Power BI","Tableau","Selenium","Pytest","Jest","CI/CD","Terraform","Ansible"];
@@ -33,8 +33,8 @@ export async function analyzeDoc(rawText: string, fileName: string): Promise<Ana
   const trimmed = rawText.slice(0, 7000);
 
   const [embedding, aiResult] = await Promise.all([
-    embed(trimmed),
-    hasKey() ? geminiAnalyze(trimmed, fileName) : Promise.resolve(null),
+    embed(trimmed, false), // isQuery = false for documents
+    hasKey() ? cohereAnalyze(trimmed, fileName) : Promise.resolve(null),
   ]);
 
   if (aiResult) return { ...aiResult, embedding: embedding.values, embeddingSource: embedding.source, embeddingDim: embedding.dim };
@@ -45,13 +45,13 @@ export async function analyzeDoc(rawText: string, fileName: string): Promise<Ana
   const title = fileName.replace(/\.[^/.]+$/, "").replace(/[_\-]+/g, " ").trim() || "Untitled";
   return {
     title, cat,
-    summary: `A ${cat.toLowerCase()} document. ${entities.skills.slice(0,3).join(", ") || ""}. Add a Gemini API key for AI summaries.`,
+    summary: `A ${cat.toLowerCase()} document. ${entities.skills.slice(0,3).join(", ") || ""}. Add a Cohere API key for AI summaries.`,
     entities, year, confidence: 65, embedding: embedding.values,
     embeddingSource: embedding.source, embeddingDim: embedding.dim
   };
 }
 
-async function geminiAnalyze(text: string, fileName: string): Promise<Omit<Analysis,"embedding"> | null> {
+async function cohereAnalyze(text: string, fileName: string): Promise<Omit<Analysis,"embedding"> | null> {
   try {
     const raw = await generate(`You are a document intelligence engine for a personal AI knowledge system.
 Extract information from this document and return ONLY valid JSON (no markdown fences):

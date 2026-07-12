@@ -1,5 +1,5 @@
 import { retrieveTop } from "./vector";
-import { generate, hasKey } from "./gemini";
+import { generate, hasKey } from "./cohere";
 import { getDocs, getProfile, getChat } from "./hybridStore";
 
 export async function ragChat(question: string, userId = "local") {
