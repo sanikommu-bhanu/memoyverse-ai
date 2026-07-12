@@ -9,6 +9,7 @@ import { MemDoc } from "@/lib/types";
 export async function POST(req: NextRequest) {
   try {
     const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
+    if (uid === "local") console.warn("No valid Firebase auth token — writing to shared local store.");
     const fd = await req.formData();
     const file = fd.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
         summary: analysis.summary, entities: analysis.entities,
         year: analysis.year, confidence: analysis.confidence,
         embedding: analysis.embedding,
+        embeddingSource: analysis.embeddingSource,
+        embeddingDim: analysis.embeddingDim,
         uploadedAt: new Date().toISOString(),
         source: "upload",
         ...(fileUrl ? { fileUrl } : {}),

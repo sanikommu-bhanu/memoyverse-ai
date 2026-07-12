@@ -2,6 +2,47 @@
 const KEY = process.env.GEMINI_API_KEY || "";
 export const hasKey = () => Boolean(KEY && KEY.trim().length > 0);
 
+const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.0-flash";
+const GEMINI_EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || "text-embedding-004";
+
+// Startup Diagnostics
+if (typeof process !== "undefined" && !process.env.__GEMINI_DIAGNOSTICS_RUN) {
+  process.env.__GEMINI_DIAGNOSTICS_RUN = "1";
+  const missing = [
+    !KEY && "GEMINI_API_KEY",
+    !process.env.FIREBASE_ADMIN_PROJECT_ID && "FIREBASE_ADMIN_*",
+    !process.env.GITHUB_CLIENT_ID && "GITHUB_*",
+    !process.env.GOOGLE_CLIENT_ID && "GOOGLE_*",
+    !process.env.LINKEDIN_CLIENT_ID && "LINKEDIN_*",
+    !process.env.MICROSOFT_CLIENT_ID && "MICROSOFT_*"
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    console.warn("[Startup Warning] Missing environment variables. Some features will fall back to local mode or fail:", missing.join(", "));
+  }
+
+  // Diagnostic check
+  const checkGeminiKey = async () => {
+    if (!hasKey()) {
+      console.warn("[Gemini Diagnostic] No key provided.");
+      return;
+    }
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models`, {
+        headers: { "x-goog-api-key": KEY }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error(`[Gemini Diagnostic] Key rejected! Status: ${res.status}. Error:`, data?.error?.message || data);
+      } else {
+        console.log(`[Gemini Diagnostic] Key is valid. Access to ${data.models?.length || 0} models confirmed.`);
+      }
+    } catch (e: any) {
+      console.error("[Gemini Diagnostic] Network error checking key:", e.message);
+    }
+  };
+  checkGeminiKey();
+}
+
 // ─── 2. Retry Logic & Error Handling ────────────────────────────────────────
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -56,25 +97,32 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /** Real 768-dim Gemini embedding via gemini-embedding-2 */
-export async function embed(text: string): Promise<number[]> {
-  if (!hasKey()) return localEmbed(text);
+export async function embed(text: string): Promise<{values: number[], source: "gemini" | "local", dim: number}> {
+  if (!hasKey()) {
+    const vals = localEmbed(text);
+    return { values: vals, source: "local", dim: vals.length };
+  }
   try {
     return await withRetry(async () => {
-      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent`, {
+      const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBED_MODEL}:embedContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
         body: JSON.stringify({
-          model: "models/text-embedding-004",
+          model: `models/${GEMINI_EMBED_MODEL}`,
           content: { parts: [{ text: text.slice(0, 8000) }] }
         })
       }), 8000);
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      return data.embedding?.values || localEmbed(text);
+      const vals = data.embedding?.values;
+      if (vals && vals.length > 0) return { values: vals, source: "gemini", dim: vals.length };
+      const localVals = localEmbed(text);
+      return { values: localVals, source: "local", dim: localVals.length };
     });
   } catch (e: any) {
     console.warn(`[AI Fallback] Embedding failed: ${e?.message}`);
-    return localEmbed(text);
+    const vals = localEmbed(text);
+    return { values: vals, source: "local", dim: vals.length };
   }
 }
 
@@ -82,7 +130,7 @@ export async function embed(text: string): Promise<number[]> {
 export async function generate(prompt: string, maxTokens = 800): Promise<string> {
   if (!hasKey()) throw new Error("API key not valid. Please pass a valid API key.");
   return await withRetry(async () => {
-    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
+    const res = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
       body: JSON.stringify({

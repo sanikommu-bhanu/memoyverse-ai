@@ -49,7 +49,8 @@ export const db = {
   },
   setToken(provider: keyof OAuthTokens, token: string) {
     try {
-      cookies().set(`${provider}_token`, token, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
+      const isProd = process.env.NODE_ENV === "production";
+      cookies().set(`${provider}_token`, token, { httpOnly: true, secure: isProd, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
     } catch {}
     const s = read();
     s.tokens = s.tokens || {};

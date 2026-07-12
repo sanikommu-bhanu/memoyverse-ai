@@ -8,6 +8,7 @@ import { verifyToken } from "@/lib/firebaseAdmin";
 
 export async function POST(req: NextRequest) {
   const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
+  if (uid === "local") console.warn("No valid Firebase auth token — writing to shared local store.");
   const token = db.getTokens().google;
   if (!token) return NextResponse.json({ error: "Google Drive not connected" }, { status: 401 });
   try {
@@ -30,6 +31,7 @@ Modified: ${f.modifiedTime?.slice(0, 10)}`;
         summary: analysis.summary, entities: analysis.entities,
         year: f.createdTime?.slice(0, 4) || String(new Date().getFullYear()),
         confidence: 80, embedding: analysis.embedding,
+        embeddingSource: analysis.embeddingSource, embeddingDim: analysis.embeddingDim,
         uploadedAt: new Date().toISOString(), source: "drive",
       };
       await addDoc(doc, uid);

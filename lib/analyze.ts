@@ -4,6 +4,7 @@ import { generate, embed, hasKey, parseJSON } from "./gemini";
 export interface Analysis {
   title: string; cat: DocCat; summary: string;
   entities: Entities; year: string; confidence: number; embedding: number[];
+  embeddingSource?: "gemini" | "local"; embeddingDim?: number;
 }
 
 const SKILLS = ["Python","JavaScript","TypeScript","React","React Native","Node.js","Java","C++","C#","Go","Rust","TensorFlow","PyTorch","Keras","Scikit-learn","Machine Learning","Deep Learning","Computer Vision","NLP","LLM","SQL","PostgreSQL","MongoDB","Redis","Firebase","AWS","Azure","GCP","Docker","Kubernetes","Git","GitHub","Figma","Photoshop","Illustrator","Data Structures","Algorithms","OpenCV","Flask","Django","FastAPI","Express","Next.js","Vue.js","Angular","HTML","CSS","Tailwind","REST API","GraphQL","Linux","Cloud Computing","Pandas","NumPy","Matplotlib","Jupyter","Spark","Hadoop","Blockchain","Swift","Kotlin","Flutter","Unity","R","MATLAB","Excel","Power BI","Tableau","Selenium","Pytest","Jest","CI/CD","Terraform","Ansible"];
@@ -36,7 +37,7 @@ export async function analyzeDoc(rawText: string, fileName: string): Promise<Ana
     hasKey() ? geminiAnalyze(trimmed, fileName) : Promise.resolve(null),
   ]);
 
-  if (aiResult) return { ...aiResult, embedding };
+  if (aiResult) return { ...aiResult, embedding: embedding.values, embeddingSource: embedding.source, embeddingDim: embedding.dim };
 
   const entities = localExtract(trimmed);
   const cat = localCat(trimmed, fileName);
@@ -45,7 +46,8 @@ export async function analyzeDoc(rawText: string, fileName: string): Promise<Ana
   return {
     title, cat,
     summary: `A ${cat.toLowerCase()} document. ${entities.skills.slice(0,3).join(", ") || ""}. Add a Gemini API key for AI summaries.`,
-    entities, year, confidence: 65, embedding,
+    entities, year, confidence: 65, embedding: embedding.values,
+    embeddingSource: embedding.source, embeddingDim: embedding.dim
   };
 }
 

@@ -2,10 +2,14 @@ import { MemDoc } from "./types";
 import { embed } from "./gemini";
 import { getDocs } from "./hybridStore";
 
-export function cosine(a: number[], b: number[]): number {
-  if (!a?.length || a.length !== b?.length) return 0;
+export function cosine(av: number[], bv: number[], aSource?: string, bSource?: string): number {
+  if (!av?.length || av.length !== bv?.length) return 0;
+  if (aSource && bSource && aSource !== bSource) {
+    console.warn(`[Vector] Mismatched embedding sources: ${aSource} vs ${bSource}. Ignoring doc.`);
+    return 0;
+  }
   let dot = 0, na = 0, nb = 0;
-  for (let i = 0; i < a.length; i++) { dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; }
+  for (let i = 0; i < av.length; i++) { dot+=av[i]*bv[i]; na+=av[i]*av[i]; nb+=bv[i]*bv[i]; }
   const d = Math.sqrt(na)*Math.sqrt(nb);
   return d===0 ? 0 : dot/d;
 }
@@ -15,11 +19,11 @@ export async function semanticSearch(
 ): Promise<{doc:MemDoc;score:number}[]> {
   const docs = await getDocs(userId);
   if (!docs.length) return [];
-  const qv = await embed(query);
+  const { values: qv, source: qSource } = await embed(query);
   const pool = cat && cat!=="All" ? docs.filter(d=>d.cat===cat) : docs;
   const scored = pool
     .filter(d=>d.embedding?.length>0)
-    .map(d=>({doc:d,score:cosine(qv,d.embedding)}))
+    .map(d=>({doc:d,score:cosine(qv,d.embedding, qSource, d.embeddingSource)}))
     .sort((a,b)=>b.score-a.score);
   if ((scored[0]?.score??0)<0.001) return kwSearch(query,pool,topK);
   return scored.slice(0,topK);

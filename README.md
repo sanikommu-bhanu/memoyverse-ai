@@ -88,6 +88,11 @@ npm run dev
 │                                                                   │
 │   OAuth Tokens → always localStorage (never in Firestore)        │
 └───────────────────────────────────────────────────────────────────┘
+
+> [!WARNING]
+> **Vercel / Serverless Deployments**: Local dev mode uses `os.tmpdir` and local file storage (`data/store.json`). These files are ephemeral and **will not persist** between invocations in a serverless environment like Vercel. 
+> 
+> For production, you **MUST** configure the `FIREBASE_ADMIN_*` environment variables. Once configured, `hybridStore.ts` will automatically switch to using Firestore and Firebase Storage, which are fully persistent and scalable.
 ```
 
 ---

@@ -5,7 +5,7 @@ export const OAUTH = {
   github: {
     clientId: process.env.GITHUB_CLIENT_ID || "",
     clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-    scope: "read:user repo",
+    scope: "read:user public_repo",
     authUrl: "https://github.com/login/oauth/authorize",
     tokenUrl: "https://github.com/login/oauth/access_token",
     apiBase: "https://api.github.com",
@@ -21,7 +21,7 @@ export const OAUTH = {
   linkedin: {
     clientId: process.env.LINKEDIN_CLIENT_ID || "",
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET || "",
-    scope: "r_liteprofile r_emailaddress",
+    scope: "openid profile email",
     authUrl: "https://www.linkedin.com/oauth/v2/authorization",
     tokenUrl: "https://www.linkedin.com/oauth/v2/accessToken",
     apiBase: "https://api.linkedin.com/v2",

@@ -8,6 +8,7 @@ import { verifyToken } from "@/lib/firebaseAdmin";
 
 export async function POST(req: NextRequest) {
   const uid = await verifyToken(req.headers.get("Authorization")) ?? "local";
+  if (uid === "local") console.warn("No valid Firebase auth token — writing to shared local store.");
   const token = db.getTokens().github;
   if (!token) return NextResponse.json({ error: "GitHub not connected" }, { status: 401 });
   try {
@@ -31,6 +32,7 @@ Last updated: ${r.updated_at?.slice(0, 4)}`;
         entities: { ...analysis.entities, tech: r.language ? [r.language, ...analysis.entities.tech] : analysis.entities.tech },
         year: r.created_at?.slice(0, 4) || String(new Date().getFullYear()),
         confidence: 90, embedding: analysis.embedding,
+        embeddingSource: analysis.embeddingSource, embeddingDim: analysis.embeddingDim,
         uploadedAt: new Date().toISOString(), source: "github",
       };
       await addDoc(doc, uid);
